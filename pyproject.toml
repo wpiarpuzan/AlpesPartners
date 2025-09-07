@@ -1,0 +1,17 @@
+[project]
+name = "alpespartners"
+version = "1.0.0"
+authors = [
+  { name="Grupo 7", email="w.piarpuzan@uniandes.edu.co" },
+]
+description = "Proyecto Alpes Partners"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+pythonpath = [
+  ".", "src",
+]
