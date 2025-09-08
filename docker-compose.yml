@@ -101,13 +101,17 @@ services:
       POSTGRES_USER: partner
       POSTGRES_PASSWORD: partner
       POSTGRES_DB: alpespartner
-    ports: ["5432:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+    ports: 
+      - "5432:5432"
+    volumes: 
+      - pgdata:/var/lib/postgresql/data
     profiles: ["alpespartner", "bd"]
+    networks:
+      - sidecar
   alpespartner:
     container_name: alpespartner
     hostname: alpespartner
-    image: alpespartner/flask 
+    image: alpespartners/flask 
     profiles: ["alpespartner", "monolito"]
     networks:
       - sidecar
@@ -120,9 +124,11 @@ services:
     environment:
       - ALPESPARTNERS_ADDRESS=alpespartner
       - PULSAR_ADDRESS=broker
-      - DB_URL=postgresql+psycopg2://app:app@postgres:5432/alpespartner
+      - DB_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
     ports:
       - "5000:5000"
+volumes:
+  pgdata:
   
   
   
