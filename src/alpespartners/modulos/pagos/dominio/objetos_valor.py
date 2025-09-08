@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
+from uuid import uuid4
+
+def nuevo_id() -> str:
+    return str(uuid4())
 
 class EstadoPago(str, Enum):
     PENDIENTE  = "PENDIENTE"
