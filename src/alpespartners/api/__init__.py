@@ -36,10 +36,6 @@ def comenzar_consumidor():
 def create_app(configuracion={}):
     # Init la aplicacion de Flask
     app = Flask(__name__, instance_relative_config=True)
-    
-    app.config['SQLALCHEMY_DATABASE_URI'] =\
-            'sqlite:///' + os.path.join(basedir, 'database.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     app.secret_key = '9d58f98f-3ae8-4149-a09f-3a8c2012e32c'
     app.config['SESSION_TYPE'] = 'filesystem'
@@ -59,11 +55,7 @@ def create_app(configuracion={}):
 
      # Importa Blueprints
     from . import cliente
-    from . import hoteles
     from . import pagos
-    from . import precios_dinamicos
-    from . import vehiculos
-    from . import vuelos
 
     # Registro de Blueprints
     app.register_blueprint(cliente.bp)

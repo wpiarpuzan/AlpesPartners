@@ -13,7 +13,7 @@ MODEL_MODULES = [
 def init_db(app: Flask):
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
         'DB_URL',
-        'postgresql+psycopg2://app:app@127.0.0.1:5432/alpespartner'
+        'postgresql+psycopg2://partner:partner@127.0.0.1:5432/alpespartner'
     )
     # Opcional: evita warnings y corta conexiones zombie
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
