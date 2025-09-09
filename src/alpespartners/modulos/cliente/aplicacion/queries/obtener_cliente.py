@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from alpespartners.modulos.cliente.dominio.repositorios import IClienteRepositorio
 from alpespartners.seedwork.aplicacion.queries import Query, QueryHandler, QueryResultado
+from alpespartners.seedwork.aplicacion.queries import ejecutar_query as query
 
 @dataclass
 class ObtenerClientePorId(Query):
@@ -37,3 +38,11 @@ class ObtenerClientePorIdHandler(QueryHandler):
             ),
         }
         return QueryResultado(resultado=data)
+    
+@query.register(ObtenerClientePorId)
+def ejecutar_Obtener_Cliente_Por_Id(query: ObtenerClientePorId):
+    from alpespartners.modulos.cliente.infraestructura.repositorios import (
+        ClienteRepositorioSQLAlchemy,
+    )
+    handler = ObtenerClientePorIdHandler(ClienteRepositorioSQLAlchemy())
+    return handler.handle(query)
