@@ -1,33 +1,42 @@
-# alpespartners/modulos/pago/infraestructura/api.py
 from flask import Blueprint, jsonify, request, Response
 import json
 
 from alpespartners.seedwork.dominio.excepciones import ExcepcionDominio
-from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPagoDTOJson
-from alpespartners.modulos.pagos.aplicacion.comandos.registrar_pago import RegistrarPago, RegistrarPagoHandler
-from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando  # mismo patrón que reserva
+from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
+from alpespartners.modulos.pagos.aplicacion.comandos.registrar_pago import ProcesarPago
+from alpespartners.modulos.pagos.aplicacion.queries.obtener_pago import ObtenerPayout
+from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando
+from alpespartners.seedwork.aplicacion.queries import ejecutar_query
 
 bp = Blueprint("pagos", __name__, url_prefix="/pagos")
+mapeador_payout = MapeadorPayoutDTOJson()
 
-@bp.route('/pago-comando', methods=('POST',))
-def registrar_pago_asincrono():
+@bp.route('/payouts-comando', methods=('POST',))
+def procesar_payout_asincrono():
     try:
-        pago_dict = request.json
-
-        map_pago = MapeadorPagoDTOJson
-        pago_dto = map_pago.externo_a_dto(pago_dict)
-
-        # Comando CQS (no ejecutamos servicio sincrónico aquí)
-        comando = RegistrarPago(
-            reserva_id=pago_dto.reserva_id,
-            cliente_id=pago_dto.cliente_id,
-            valor=pago_dto.valor,
-            moneda=pago_dto.moneda,
-            medio_tipo=pago_dto.medio_tipo,
-            medio_mask=pago_dto.medio_mask,
+        payout_dict = request.json
+        payout_dto_in = mapeador_payout.externo_a_dto(payout_dict)
+        comando = ProcesarPago(
+            partner_id=payout_dto_in.partner_id,
+            cycle_id=payout_dto_in.cycle_id
         )
+        
         ejecutar_commando(comando)
-
         return Response({}, status=202, mimetype='application/json')
+
     except ExcepcionDominio as e:
-        return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
+        return Response(json.dumps({'error': str(e)}), status=400, mimetype='application/json')
+
+@bp.route('/payouts/<id>', methods=('GET',))
+def obtener_payout_por_id(id):
+    try:
+        query_resultado = ejecutar_query(ObtenerPayout(id=id))
+        
+        if query_resultado.resultado:
+            payout_dto_out = mapeador_payout.dto_a_externo(query_resultado.resultado)
+            return jsonify(payout_dto_out)
+        else:
+            return Response(json.dumps({'error': 'Payout no encontrado'}), status=404, mimetype='application/json')
+            
+    except Exception as e:
+        return Response(json.dumps({'error': str(e)}), status=500, mimetype='application/json')
