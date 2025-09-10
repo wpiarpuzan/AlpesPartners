@@ -1,10 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 @dataclass
 class EventoDominio:
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime
 
 @dataclass
 class PayoutCreado(EventoDominio):

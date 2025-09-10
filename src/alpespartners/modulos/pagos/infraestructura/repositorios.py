@@ -18,18 +18,32 @@ class PayoutRepositorioSQLAlchemy(IPayoutRepositorio):
         self._session.add(payout_dto)
         # El commit se manejará por fuera, en la unidad de trabajo (Unit of Work)
 
-    def obtener_por_id(self, payout_id: str) -> Optional[Payout]:
+    def obtener_por_id(self, payout_id: str, version_dto: bool = False) -> Optional[Payout]:
         payout_dto = self._session.query(PayoutModel).filter_by(id=payout_id).one_or_none()
         if payout_dto:
+            if version_dto:
+                return payout_dto
             return self._mapeador.dto_a_entidad(payout_dto)
         return None
 
     def actualizar(self, payout: Payout):
-        # La sesión de SQLAlchemy rastrea los cambios en los objetos DTO.
-        # Al confirmar la Unidad de Trabajo, los cambios se reflejarán en la BD.
-        # No se necesita una implementación explícita si el objeto fue cargado
-        # previamente en la misma sesión.
-        pass
+        """
+        Actualiza un payout existente en la base de datos.
+        """
+        payout_dto = self._session.query(PayoutModel).filter_by(id=payout.id).one_or_none()
+        if payout_dto:
+            actualizado = self._mapeador.entidad_a_dto(payout)
+            for attr, value in actualizado.__dict__.items():
+                setattr(payout_dto, attr, value)
+            # El commit se maneja por fuera
+
+    def eliminar(self, aggregate_id: str):
+        """
+        Elimina un payout por su ID.
+        """
+        payout_dto = self._session.query(PayoutModel).filter_by(id=aggregate_id).one_or_none()
+        if payout_dto:
+            self._session.delete(payout_dto)
 
     def obtener_por_partner_y_ciclo(self, partner_id: str, cycle_id: str) -> Optional[Payout]:
         payout_dto = self._session.query(PayoutModel).filter_by(
@@ -99,15 +113,19 @@ class TransactionRepositorioSQLAlchemy(ITransactionRepositorio):
 
     def actualizar(self, transaccion: Transaction, mapeador=MapeadorTransaction()):
         """
-        Actualiza una entidad Transaction. Dado que las transacciones son inmutables
-        una vez creadas, este método generalmente no se usa o se usa para asignar un payout_id.
-        SQLAlchemy maneja el seguimiento de cambios, por lo que una implementación explícita
-        no siempre es necesaria.
+        Actualiza una entidad Transaction en la base de datos.
         """
-        pass
+        transaccion_dto = self._session.query(TransactionModel).filter_by(id=transaccion.id).one_or_none()
+        if transaccion_dto:
+            actualizado = mapeador.entidad_a_dto(transaccion)
+            for attr, value in actualizado.__dict__.items():
+                setattr(transaccion_dto, attr, value)
+            # El commit se maneja por fuera
 
     def eliminar(self, aggregate_id: str):
         """
-        Elimina una transacción por su ID. Implementar si es requerido por el negocio.
+        Elimina una transacción por su ID.
         """
-        pass
+        transaccion_dto = self._session.query(TransactionModel).filter_by(id=aggregate_id).one_or_none()
+        if transaccion_dto:
+            self._session.delete(transaccion_dto)

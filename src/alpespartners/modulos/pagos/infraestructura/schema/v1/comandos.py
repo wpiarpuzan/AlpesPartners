@@ -6,5 +6,7 @@ class ComandoProcesarPagoPayload(ComandoIntegracion):
     cycle_id = String(required=True)
     correlation_id = String(required=True)
 
-class ComandoProcesarPago(ComandoIntegracion):
-    data = ComandoProcesarPagoPayload()
+class ComandoProcesarPago(Record):
+    partner_id = String()
+    cycle_id = String()
+    correlation_id = String()

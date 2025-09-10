@@ -21,22 +21,23 @@ class Payout:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     partner_id: str = field(default_factory=str)
     cycle_id: str = field(default_factory=str)
-    monto_total: Monto = field(default_factory=Monto)
+    monto_total: Monto = field(default_factory=lambda: Monto(valor=0, moneda="USD"))
     transaction_ids: list[str] = field(default_factory=list)
     estado: EstadoPago = field(default=EstadoPago.PENDIENTE)
     fecha_creacion: datetime = field(default_factory=datetime.utcnow)
     eventos: list = field(default_factory=list, repr=False)
 
-    def crear(self, partner_id: str, cycle_id: str):
-        self.partner_id = partner_id
-        self.cycle_id = cycle_id
-        self.estado = EstadoPago.PENDIENTE
-        self.eventos.append(PayoutCreado(
-            payout_id=self.id,
-            partner_id=self.partner_id,
-            cycle_id=self.cycle_id,
-            fecha_creacion=self.fecha_creacion
+    @classmethod
+    def crear(cls, partner_id: str, cycle_id: str):
+        payout = cls(partner_id=partner_id, cycle_id=cycle_id, estado=EstadoPago.PENDIENTE)
+        payout.eventos.append(PayoutCreado(
+            payout_id=payout.id,
+            partner_id=payout.partner_id,
+            cycle_id=payout.cycle_id,
+            fecha_creacion=payout.fecha_creacion,
+            timestamp=payout.fecha_creacion
         ))
+        return payout
 
     def calcular_comisiones(self, transactions: list[Transaction]):
         if self.estado != EstadoPago.PENDIENTE:

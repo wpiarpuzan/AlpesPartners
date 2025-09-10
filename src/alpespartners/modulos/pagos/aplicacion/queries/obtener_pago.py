@@ -2,7 +2,7 @@ from alpespartners.seedwork.aplicacion.queries import Query, QueryHandler, Query
 from alpespartners.seedwork.aplicacion.queries import ejecutar_query as query
 from alpespartners.modulos.pagos.dominio.repositorios import IPayoutRepositorio
 from alpespartners.modulos.pagos.infraestructura.fabricas import FabricaRepositorio
-from alpespartners.modulos.pagos.infraestructura.mapeadores import MapeadorPayout
+from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
 from dataclasses import dataclass
 
 class PagoQueryBaseHandler(QueryHandler):
@@ -22,7 +22,7 @@ class ObtenerPayoutHandler(PagoQueryBaseHandler):
         repositorio = self.fabrica_repositorio.crear_objeto(IPayoutRepositorio)
         payout_dto_infra = repositorio.obtener_por_id(query.id, version_dto=True)
         
-        mapeador = MapeadorPayout()
+        mapeador = MapeadorPayoutDTOJson()
         payout_dto_app = mapeador.dto_a_dto(payout_dto_infra)
         
         return QueryResultado(resultado=payout_dto_app)

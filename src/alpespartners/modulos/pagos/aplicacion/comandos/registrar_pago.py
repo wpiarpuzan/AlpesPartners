@@ -32,14 +32,14 @@ class ProcesarPago(Comando):
 
 class ProcesarPagoHandler(ComandoHandler):
     def handle(self, comando: ProcesarPago):
+        fabrica = FabricaRepositorio()
+        self._repo_payout: IPayoutRepositorio = fabrica.crear_objeto(IPayoutRepositorio)
+        self._repo_transacciones: ITransactionRepositorio = fabrica.crear_objeto(ITransactionRepositorio)
 
         payout: Payout = Payout.crear(
             partner_id=comando.partner_id,
             cycle_id=comando.cycle_id
         )
-
-        self._repo_payout: IPayoutRepositorio = FabricaRepositorio.crear_objeto(IPayoutRepositorio)
-        self._repo_transacciones: ITransactionRepositorio = FabricaRepositorio.crear_objeto(ITransactionRepositorio)
 
         transacciones: list[Transaction] = self._repo_transacciones.obtener_por_partner_y_ciclo(
             partner_id=comando.partner_id,
@@ -48,16 +48,16 @@ class ProcesarPagoHandler(ComandoHandler):
 
         if not transacciones:
             print(f"No se encontraron transacciones para el partner {comando.partner_id}, ciclo {comando.cycle_id}. No se procesará el pago.")
-            return
+            return None
 
         payout.calcular_comisiones(transacciones)
         UnidadTrabajoPuerto.registrar_batch(self._repo_payout.agregar, payout, mapeador=MapeadorPayout())
         UnidadTrabajoPuerto.savepoint()
         UnidadTrabajoPuerto.commit()
-        
         print(f"Payout para partner {payout.partner_id} procesado y listo para commit.")
+        return payout
 
 @comando.register(ProcesarPago)
 def ejecutar_comando_procesar_pago(comando: ProcesarPago):
     handler = ProcesarPagoHandler()
-    handler.handle(comando)
+    return handler.handle(comando)

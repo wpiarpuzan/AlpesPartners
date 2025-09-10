@@ -16,8 +16,7 @@ class MapeadorPayoutDTOJson(AppMap):
             "fecha_creacion": dto.fecha_creacion.isoformat(),
             "fecha_actualizacion": dto.fecha_actualizacion.isoformat()
         }
-
-class MapeadorPayout(AppMap):
+    
     def dto_a_dto(self, dto_infra: PayoutModel) -> PayoutDTO:
         if dto_infra is None:
             return None
@@ -26,10 +25,12 @@ class MapeadorPayout(AppMap):
             id=str(dto_infra.id),
             partner_id=str(dto_infra.partner_id),
             cycle_id=str(dto_infra.cycle_id),
-            estado=dto_infra.status.value, # Obtenemos el valor del Enum
+            estado=dto_infra.status.value,
             monto_total_valor=dto_infra.monto.valor,
             monto_total_moneda=dto_infra.monto.moneda,
             fecha_creacion=dto_infra.created_at,
             fecha_actualizacion=dto_infra.updated_at
         )
-    
+
+class MapeadorPayout(MapeadorPayoutDTOJson):
+    pass

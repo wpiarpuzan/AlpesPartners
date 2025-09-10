@@ -11,7 +11,7 @@ from alpespartners.seedwork.aplicacion.queries import ejecutar_query
 bp = Blueprint("pagos", __name__, url_prefix="/pagos")
 mapeador_payout = MapeadorPayoutDTOJson()
 
-@bp.route('/payouts-comando', methods=('POST',))
+@bp.route('/pagar', methods=('POST',))
 def procesar_payout_asincrono():
     try:
         payout_dict = request.json
@@ -20,14 +20,16 @@ def procesar_payout_asincrono():
             partner_id=payout_dto_in.partner_id,
             cycle_id=payout_dto_in.cycle_id
         )
-        
-        ejecutar_commando(comando)
-        return Response({}, status=202, mimetype='application/json')
+        payout = ejecutar_commando(comando)
+        payout_id = payout.id if payout else None
+        return Response(json.dumps({'id': payout_id}), status=202, mimetype='application/json')
 
     except ExcepcionDominio as e:
         return Response(json.dumps({'error': str(e)}), status=400, mimetype='application/json')
+    except Exception as e:
+        return Response(json.dumps({'error': str(e)}), status=500, mimetype='application/json')
 
-@bp.route('/payouts/<id>', methods=('GET',))
+@bp.route('/<id>', methods=('GET',))
 def obtener_payout_por_id(id):
     try:
         query_resultado = ejecutar_query(ObtenerPayout(id=id))

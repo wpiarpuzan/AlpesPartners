@@ -124,11 +124,12 @@ services:
     environment:
       - ALPESPARTNERS_ADDRESS=alpespartner
       - PULSAR_ADDRESS=broker
+      - BROKER_HOST=broker
       - DB_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
     ports:
       - "5000:5000"
 volumes:
   pgdata:
-  
-  
-  
+
+
+
