@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ReservaAprobada",
+  "namespace": "alpespartners.reservas",
+  "fields": [
+    {"name": "schemaVersion", "type": "string", "default": "v1"},
+    {"name": "idReserva", "type": "string"},
+    {"name": "fechaAprobacion", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "origen", "type": "string", "default": "PAGOS"}
+  ]
+}

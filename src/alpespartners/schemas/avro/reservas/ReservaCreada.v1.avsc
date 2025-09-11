@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "ReservaCreada",
+  "namespace": "alpespartners.reservas",
+  "fields": [
+    {"name": "schemaVersion", "type": "string", "default": "v1"},
+    {"name": "idReserva", "type": "string"},
+    {"name": "idCliente", "type": "string"},
+    {"name": "itinerario", "type": {"type": "array", "items": "string"}},
+    {"name": "fechaCreacion", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "estado", "type": "string", "default": "CREADA"}
+  ]
+}

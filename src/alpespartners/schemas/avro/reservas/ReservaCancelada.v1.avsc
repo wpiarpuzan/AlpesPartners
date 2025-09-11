@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ReservaCancelada",
+  "namespace": "alpespartners.reservas",
+  "fields": [
+    {"name": "schemaVersion", "type": "string", "default": "v1"},
+    {"name": "idReserva", "type": "string"},
+    {"name": "motivo", "type": ["null", "string"], "default": null},
+    {"name": "fechaCancelacion", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+  ]
+}

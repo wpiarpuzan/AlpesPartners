@@ -3,8 +3,9 @@ networks:
     driver: bridge
   sidecar:
     driver: bridge
+
 services:
-# Start zookeeper
+  # Start zookeeper
   zookeeper:
     image: apachepulsar/pulsar:latest
     profiles: ["pulsar"]
@@ -26,7 +27,7 @@ services:
       timeout: 5s
       retries: 30
 
-# Init cluster metadata
+  # Init cluster metadata
   pulsar-init:
     container_name: pulsar-init
     hostname: pulsar-init
@@ -39,7 +40,7 @@ services:
       zookeeper:
         condition: service_healthy
 
-# Start bookie
+  # Start bookie
   bookie:
     image: apachepulsar/pulsar:latest
     profiles: ["pulsar"]
@@ -56,13 +57,13 @@ services:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
-  # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
+    # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
     volumes:
       - ./data/bookkeeper:/pulsar/data/bookkeeper
     command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf
       && exec bin/pulsar bookie"
 
-# Start broker
+  # Start broker
   broker:
     image: apachepulsar/pulsar:latest
     profiles: ["pulsar"]
@@ -79,10 +80,8 @@ services:
       - managedLedgerDefaultWriteQuorum=1
       - managedLedgerDefaultAckQuorum=1
       - advertisedAddress=broker
-      #Si se realiza una ejecución manual del microservicio desde el IDE, se debe usar esta línea:
+      # Si se ejecuta desde IDE, usar esta línea:
       - advertisedListeners=external:pulsar://broker:6650
-      #Si se realiza una ejecución completa de todo (incluido el microservicio) con docker compose, se debería usar esta línea en lugar de la anterior para que se comunique con el contenedor broker dentro de una misma ejecución
-      # - advertisedListeners=external:pulsar://broker:6650
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -93,7 +92,7 @@ services:
       - "8080:8080"
     command: bash -c "bin/apply-config-from-env.py conf/broker.conf
       &&  exec bin/pulsar broker"
-  
+
   # Servicios de Alpes Partners
   postgres:
     image: postgres:15
@@ -101,35 +100,52 @@ services:
       POSTGRES_USER: partner
       POSTGRES_PASSWORD: partner
       POSTGRES_DB: alpespartner
-    ports: 
+    ports:
       - "5432:5432"
-    volumes: 
+    volumes:
       - pgdata:/var/lib/postgresql/data
     profiles: ["alpespartner", "bd"]
     networks:
       - sidecar
+
   alpespartner:
     container_name: alpespartner
     hostname: alpespartner
-    image: alpespartners/flask 
+    build:
+      context: .
+      dockerfile: alpesparteners.Dockerfile
+    image: alpespartners/flask:local
     profiles: ["alpespartner", "monolito"]
-    networks:
-      - sidecar
-      - pulsar
+    networks: [sidecar, pulsar]
     labels:
       SidecarDiscover: "false"
     depends_on:
-      - broker
-      - postgres
+      broker:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    restart: on-failure
     environment:
       - ALPESPARTNERS_ADDRESS=alpespartner
       - PULSAR_ADDRESS=broker
       - BROKER_HOST=broker
       - DB_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
+      - DATABASE_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
+      - PULSAR_BROKER_URL=pulsar://broker:6650
+      - TOPIC_COMANDOS_RESERVAS=persistent://public/default/comandos.reservas
+      - TOPIC_EVENTOS_RESERVAS=persistent://public/default/eventos.reservas
+      - PYTHONPATH=/src        # 👈 clave: /src, no "/"
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
     ports:
       - "5000:5000"
+    command: flask --app alpespartners.api:create_app run --host=0.0.0.0 --no-reload
+    # Si prefieres Gunicorn (más estable), cambia 'command' por:
+    # command: >
+    #   gunicorn "alpespartners.api:create_app()"
+    #   -b 0.0.0.0:5000 --workers 2 --threads 4 --timeout 0 --log-level info
+
+
+
 volumes:
   pgdata:
-
-
-
