@@ -18,7 +18,10 @@ class Usuario(Entidad):
 @dataclass
 class ClienteNatural(Usuario):
     cedula: Cedula = field(default_factory=Cedula)
-    fecha_nacimiento: datetime = field(default_factory=datetime)
+    fecha_nacimiento: datetime = field(default_factory=datetime.now)
+    fecha_registro: datetime = field(default_factory=datetime.now)
+    total_pagos: int = 0
+    ultimo_pago: datetime = None
 
 @dataclass
 class ClienteEmpresa(Usuario):

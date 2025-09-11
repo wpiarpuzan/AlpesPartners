@@ -2,6 +2,8 @@
 import os, json, re
 from datetime import datetime
 from .repositorios import ClienteRepositorioSQLAlchemy
+from alpespartners.config.db import db as db_session
+from alpespartners.modulos.cliente.infraestructura.dto import ClienteModel as Cliente
 
 try:
     import pulsar
@@ -29,28 +31,33 @@ def suscribirse_a_pagos():
         return
 
     client = pulsar.Client(f"pulsar://{PULSAR_ADDR}:6650")
-    consumer = client.subscribe(PAGOS_TOPIC, subscription_name="cliente-proyeccion")
+    consumer = client.subscribe('eventos-pagos', subscription_name='cliente-actualizador')
     print(f"[cliente] Subscrito a {PAGOS_TOPIC}")
-
-    repo = ClienteRepositorioSQLAlchemy()
 
     while True:
         msg = consumer.receive()
-        try:
-            ev = _parse_event(msg.data())
-            if ev.get("type") in ("PagoRegistrado", "alpespartners.pagos.PagoRegistrado", None):
-                cliente_id = ev.get("cliente_id")
-                fecha = ev.get("fecha")
-                if isinstance(fecha, str):
-                    try:
-                        fecha = datetime.fromisoformat(fecha)
-                    except Exception:
-                        fecha = None
-                repo.actualizar_totales_por_pago(cliente_id, fecha or datetime.utcnow())
+        evento = json.loads(msg.data())
+
+        if evento.get('status') != 'CALCULADO':
             consumer.acknowledge(msg)
-        except Exception as e:
-            print("[cliente] error procesando evento:", e)
-            consumer.negative_acknowledge(msg)
+            continue
+
+        partner_id = evento.get('partner_id')
+        fecha_pago = evento.get('processed_at')
+        if not partner_id or not fecha_pago:
+            consumer.acknowledge(msg)
+            continue
+
+        fecha_pago = datetime.fromisoformat(fecha_pago)
+        cliente = db_session.query(Cliente).filter_by(id=partner_id).first()
+        if cliente:
+            cliente.total_pagos = (cliente.total_pagos or 0) + 1
+            cliente.ultimo_pago = fecha_pago
+            db_session.commit()
+
+        consumer.acknowledge(msg)
+
+    client.close()
 
 if __name__ == "__main__":
     suscribirse_a_pagos()

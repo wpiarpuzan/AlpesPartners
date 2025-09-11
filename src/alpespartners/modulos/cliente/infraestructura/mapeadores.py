@@ -6,10 +6,16 @@ def modelo_a_cliente(m: ClienteModel) -> ClienteNatural:
     if m is None:
         return None
 
+    email=Email(
+            address=m.email,
+            dominio=m.email.split('@')[1] if '@' in m.email else '',
+            es_empresarial=True  # o False, según tu lógica
+        )
+    
     return ClienteNatural(
         id=m.id,
         nombre=m.nombre,
-        email=Email(m.email) if isinstance(m.email, str) else m.email,
+        email=email,
         cedula=m.cedula,                           # si tienes VO Cedula, cámbialo por Cedula(m.cedula)
         fecha_registro=m.fecha_registro,
         total_pagos=m.total_pagos or 0,
