@@ -8,12 +8,14 @@ db = SQLAlchemy()
 MODEL_MODULES = [   
     "alpespartners.modulos.cliente.infraestructura.dto",  # idem
     "alpespartners.modulos.pago.infraestructura.dto",     # si aún no existe, se ignora
+    "alpespartners.modulos.campanias.infraestructura.repos", # Para event_store
 ]
 
 def init_db(app: Flask):
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
         'DB_URL',
-        'postgresql+psycopg2://partner:partner@127.0.0.1:5432/alpespartner'
+        'postgresql+psycopg2://partner:partner@postgres:5432/alpespartner'
+        #'postgresql+psycopg2://partner:partner@127.0.0.1:5432/alpespartner'
     )
     # Opcional: evita warnings y corta conexiones zombie
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -28,4 +30,3 @@ def init_db(app: Flask):
             except ModuleNotFoundError:
                 pass 
         db.create_all()
-    

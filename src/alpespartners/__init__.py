@@ -41,3 +41,25 @@ class Not(TocinoBase):
 
     def satisface(self, obj: Any) -> bool:
         return not self.sujeto.satisface(obj)
+
+# --- APP FACTORY (añadir al final de __init__.py) ---
+from flask import Flask
+
+def create_app() -> Flask:
+    app = Flask(__name__)
+
+    # Observabilidad
+    from .observabilidad.metrics import metrics_bp, register_metrics
+    register_metrics(app)
+    app.register_blueprint(metrics_bp)
+
+    # (Opcional) registra aquí tus blueprints de negocio
+    # from .api.campanias import bp as campanias_bp
+    # app.register_blueprint(campanias_bp, url_prefix="/campanias")
+
+    # Health simple (útil para compose)
+    @app.get("/health")
+    def _health():
+        return {"status": "ok"}
+
+    return app
