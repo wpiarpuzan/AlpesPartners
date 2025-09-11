@@ -60,7 +60,9 @@ class UnidadTrabajo(ABC):
 
     def registrar_batch(self, operacion, *args, lock=Lock.PESIMISTA, **kwargs):
         batch = Batch(operacion, lock, *args, **kwargs)
+        print(f"[DEBUG][registrar_batch] Añadiendo batch: operacion={operacion}, args={args}, kwargs={kwargs}")
         self.batches.append(batch)
+        print(f"[DEBUG][registrar_batch] Total batches ahora: {len(self.batches)}")
         self._publicar_eventos_dominio(batch)
 
     def _publicar_eventos_dominio(self, batch):
@@ -83,27 +85,28 @@ def registrar_unidad_de_trabajo(serialized_obj):
     from flask import session
     
 
-    session['uow'] = serialized_obj
+    # Guarda solo un marcador, no el objeto serializado
+    session['uow'] = True
 
 def flask_uow():
-    from flask import session
+    print("[flask_uow] INICIO")
+    from flask import g, session
     from alpespartners.config.uow import UnidadTrabajoSQLAlchemy
-    if session.get('uow'):
-        return session['uow']
-    else:
-        uow_serialized = pickle.dumps(UnidadTrabajoSQLAlchemy())
-        registrar_unidad_de_trabajo(uow_serialized)
-        return uow_serialized
+    if not hasattr(g, 'uow'):
+        g.uow = UnidadTrabajoSQLAlchemy()
+        registrar_unidad_de_trabajo(True)
+    return g.uow
 
 def unidad_de_trabajo() -> UnidadTrabajo:
     if is_flask():
-        return pickle.loads(flask_uow())
+        return flask_uow()
     else:
         raise Exception('No hay unidad de trabajo')
 
 def guardar_unidad_trabajo(uow: UnidadTrabajo):
+    print("[guardar_unidad_trabajo] INICIO")
     if is_flask():
-        registrar_unidad_de_trabajo(pickle.dumps(uow))
+        registrar_unidad_de_trabajo(True)
     else:
         raise Exception('No hay unidad de trabajo')
 

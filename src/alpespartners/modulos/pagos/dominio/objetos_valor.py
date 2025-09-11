@@ -8,21 +8,39 @@ def nuevo_id() -> str:
 
 class EstadoPago(str, Enum):
     PENDIENTE  = "PENDIENTE"
+    CALCULADO  = "CALCULADO"
     CONFIRMADO = "CONFIRMADO"
     RECHAZADO  = "RECHAZADO"
-
+    
 class TipoMedioPago(str, Enum):
     TARJETA        = "TARJETA"
     PSE            = "PSE"
     TRANSFERENCIA  = "TRANSFERENCIA"
     EFECTIVO       = "EFECTIVO"
 
-@dataclass(frozen=True)
 class Monto:
-    valor: Decimal
-    moneda: str
+    def __init__(self, valor: Decimal, moneda: str):
+        self.valor = valor
+        self.moneda = moneda
+    
+    def __composite_values__(self):
+        return self.valor, self.moneda
+    
+    def __eq__(self, other):
+        return isinstance(other, Monto) and \
+                other.valor == self.valor and \
+                other.moneda == self.moneda
 
-@dataclass(frozen=True)
 class MedioPago:
-    tipo: TipoMedioPago
-    mascara: str
+    def __init__(self, tipo: TipoMedioPago, mascara: str):
+        self.tipo = tipo
+        self.mascara = mascara
+        
+    def __composite_values__(self):
+        return self.tipo, self.mascara
+        
+    def __eq__(self, other):
+        return isinstance(other, MedioPago) and \
+                other.tipo == self.tipo and \
+                other.mascara == self.mascara
+    

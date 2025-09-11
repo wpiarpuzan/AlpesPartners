@@ -1,3 +1,4 @@
+from sqlalchemy import func
 """DTOs para la capa de infrastructura del dominio de clientes
 
 En este archivo usted encontrará los DTOs (modelos anémicos) de
@@ -17,7 +18,7 @@ class ClienteModel(db.Model):
     nombre         = db.Column(db.String(120), nullable=False)
     email          = db.Column(db.String(120), nullable=False, unique=True)
     cedula         = db.Column(db.String(120), nullable=False, unique=True)    
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, server_default=func.now(), nullable=False)
 
     # === NUEVO: proyección alimentada por eventos de pago ===
     total_pagos = db.Column(db.Integer, nullable=False, default=0)

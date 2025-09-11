@@ -1,24 +1,33 @@
+from alpespartners.seedwork.aplicacion.queries import Query, QueryHandler, QueryResultado
+from alpespartners.seedwork.aplicacion.queries import ejecutar_query as query
+from alpespartners.modulos.pagos.dominio.repositorios import IPayoutRepositorio
+from alpespartners.modulos.pagos.infraestructura.fabricas import FabricaRepositorio
+from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
 from dataclasses import dataclass
-from alpespartners.modulos.pagos.dominio.repositorios import IPagoRepositorio
+
+class PagoQueryBaseHandler(QueryHandler):
+    def __init__(self):
+        self._fabrica_repositorio: FabricaRepositorio = FabricaRepositorio()
+
+    @property
+    def fabrica_repositorio(self) -> FabricaRepositorio:
+        return self._fabrica_repositorio
 
 @dataclass
-class ObtenerPagoPorId:
-    pago_id: str
+class ObtenerPayout(Query):
+    id: str
 
-class ObtenerPagoPorIdHandler:
-    def __init__(self, repo: IPagoRepositorio):
-        self.repo = repo
-    def handle(self, q: ObtenerPagoPorId):
-        pago = self.repo.obtener_por_id(q.pago_id)
-        if not pago: return None
-        return {
-            "id": pago.id,
-            "reserva_id": pago.reserva_id,
-            "cliente_id": pago.cliente_id, 
-            "valor": float(pago.monto.valor),
-            "moneda": pago.monto.moneda,
-            "medio_tipo": pago.medio.tipo.value,  # <---
-            "medio_mask": pago.medio.mascara,
-            "estado": pago.estado.value,          # <---
-            "fecha_creacion": pago.fecha_creacion.isoformat(),
-        }
+class ObtenerPayoutHandler(PagoQueryBaseHandler):
+    def handle(self, query: ObtenerPayout) -> QueryResultado:
+        repositorio = self.fabrica_repositorio.crear_objeto(IPayoutRepositorio)
+        payout_dto_infra = repositorio.obtener_por_id(query.id, version_dto=True)
+        
+        mapeador = MapeadorPayoutDTOJson()
+        payout_dto_app = mapeador.dto_a_dto(payout_dto_infra)
+        
+        return QueryResultado(resultado=payout_dto_app)
+
+@query.register(ObtenerPayout)
+def ejecutar_query_obtener_payout(query: ObtenerPayout):
+    handler = ObtenerPayoutHandler()
+    return handler.handle(query)

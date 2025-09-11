@@ -1,35 +1,55 @@
-"""DTOs para la capa de infrastructura del dominio de pagos
-
-En este archivo usted encontrará los DTOs (modelos anémicos) de
-la infraestructura del dominio de pagos
-
-"""
-
+def new_uuid():
+    import uuid
+    return str(uuid.uuid4())
+from sqlalchemy import func
 from alpespartners.config.db import db
+from sqlalchemy.orm import composite
 from datetime import datetime
-from alpespartners.modulos.pagos.dominio.objetos_valor import EstadoPago, TipoMedioPago
+from alpespartners.modulos.pagos.dominio.objetos_valor import EstadoPago, TipoMedioPago, Monto, MedioPago
+import uuid
 
-class PagoModel(db.Model):
-    __tablename__ = "pagos"
-    id            = db.Column(db.String, primary_key=True)
-    reserva_id    = db.Column(db.String, nullable=False)
-    cliente_id    = db.Column(db.String, nullable=False)
-    valor         = db.Column(db.Numeric(10,2), nullable=False)
-    moneda        = db.Column(db.String(3), nullable=False)
+class PayoutCycleModel(db.Model):
+    __tablename__ = "payout_cycles"
+    id = db.Column(db.String, primary_key=True)
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(50), nullable=False, default="IN_PROGRESS")
+    
+class PayoutModel(db.Model):
+    __tablename__ = "payouts"
+    id = db.Column(db.String, primary_key=True)
+    partner_id = db.Column(db.String, nullable=False, index=True) 
+    cycle_id = db.Column(db.String, db.ForeignKey('payout_cycles.id'), nullable=False)
+    
+    _total_amount = db.Column("total_amount", db.Numeric(10, 2), nullable=False)
+    _currency = db.Column("currency", db.String(3), nullable=False)
+    _payment_method_type = db.Column("payment_method_type", db.Enum(TipoMedioPago, name="tipo_medio_pago", native_enum=False), nullable=False)
+    _payment_method_mask = db.Column("payment_method_mask", db.String(32), nullable=False)
 
-    # Enum portable (se guarda como texto, funciona en SQLite/Postgres)
-    medio_tipo = db.Column(
-        db.Enum(TipoMedioPago, name="tipo_medio_pago", native_enum=False),
-        nullable=False,
-    )
-    medio_mask = db.Column(db.String(32), nullable=False)
+    monto = composite(Monto, _total_amount, _currency)
+    medio_pago = composite(MedioPago, _payment_method_type, _payment_method_mask)
 
-    estado = db.Column(
-        db.Enum(EstadoPago, name="estado_pago", native_enum=False),
-        nullable=False,
-        default=EstadoPago.PENDIENTE,
-    )
+    status = db.Column(db.Enum(EstadoPago, name="estado_pago", native_enum=False), nullable=False, default=EstadoPago.PENDIENTE)
+    confirmation_id = db.Column(db.String, nullable=True)
+    failure_reason = db.Column(db.Text, nullable=True)
+    
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)
+    processed_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
 
-    fecha_creacion      = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
+class TransactionModel(db.Model):
+    __tablename__ = "transactions"
+    id = db.Column(db.String, primary_key=True)
+    partner_id = db.Column(db.String, nullable=False, index=True)
+    brand_id = db.Column(db.String, nullable=False, index=True)
+    payout_id = db.Column(db.String, db.ForeignKey('payouts.id'), nullable=True, index=True)
+    cycle_id = db.Column(db.String, db.ForeignKey('payout_cycles.id'), nullable=False, index=True)
+    
+    _commission_value = db.Column("commission_value", db.Numeric(10, 2), nullable=False)
+    _currency = db.Column("currency", db.String(3), nullable=False)
+    
+    comision = composite(Monto, _commission_value, _currency)
+    
+    event_type = db.Column(db.String(50), nullable=False)
+    event_timestamp = db.Column(db.DateTime, nullable=False)
