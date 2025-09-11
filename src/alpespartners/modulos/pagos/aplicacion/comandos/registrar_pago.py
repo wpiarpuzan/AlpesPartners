@@ -51,7 +51,7 @@ class ProcesarPagoHandler(ComandoHandler):
             return None
 
         payout.calcular_comisiones(transacciones)
-        UnidadTrabajoPuerto.registrar_batch(self._repo_payout.agregar, payout, mapeador=MapeadorPayout())
+        UnidadTrabajoPuerto.registrar_batch(self._repo_payout.agregar, payout)
         UnidadTrabajoPuerto.savepoint()
         UnidadTrabajoPuerto.commit()
         print(f"Payout para partner {payout.partner_id} procesado y listo para commit.")

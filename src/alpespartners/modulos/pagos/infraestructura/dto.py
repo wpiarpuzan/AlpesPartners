@@ -1,3 +1,7 @@
+def new_uuid():
+    import uuid
+    return str(uuid.uuid4())
+from sqlalchemy import func
 from alpespartners.config.db import db
 from sqlalchemy.orm import composite
 from datetime import datetime
@@ -6,14 +10,14 @@ import uuid
 
 class PayoutCycleModel(db.Model):
     __tablename__ = "payout_cycles"
-    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = db.Column(db.String, primary_key=True)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(50), nullable=False, default="IN_PROGRESS")
     
 class PayoutModel(db.Model):
     __tablename__ = "payouts"
-    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = db.Column(db.String, primary_key=True)
     partner_id = db.Column(db.String, nullable=False, index=True) 
     cycle_id = db.Column(db.String, db.ForeignKey('payout_cycles.id'), nullable=False)
     
@@ -29,17 +33,18 @@ class PayoutModel(db.Model):
     confirmation_id = db.Column(db.String, nullable=True)
     failure_reason = db.Column(db.Text, nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)
     processed_at = db.Column(db.DateTime, nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
 
 class TransactionModel(db.Model):
     __tablename__ = "transactions"
-    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = db.Column(db.String, primary_key=True)
     partner_id = db.Column(db.String, nullable=False, index=True)
     brand_id = db.Column(db.String, nullable=False, index=True)
     payout_id = db.Column(db.String, db.ForeignKey('payouts.id'), nullable=True, index=True)
+    cycle_id = db.Column(db.String, db.ForeignKey('payout_cycles.id'), nullable=False, index=True)
     
     _commission_value = db.Column("commission_value", db.Numeric(10, 2), nullable=False)
     _currency = db.Column("currency", db.String(3), nullable=False)

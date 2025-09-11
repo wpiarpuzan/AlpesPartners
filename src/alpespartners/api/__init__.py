@@ -1,3 +1,6 @@
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
 import os
 
 from flask import Flask, render_template, request, url_for, redirect, jsonify, session
@@ -60,6 +63,19 @@ def create_app(configuracion={}):
     # Registro de Blueprints
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
+
+    # Manejador global de errores para mostrar el stacktrace en los logs
+    import logging
+    import traceback
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        # Imprime el stacktrace completo en los logs
+        logging.error("\n" + traceback.format_exc())
+        # Opcional: también puedes retornar el stacktrace en la respuesta para debug
+        return jsonify({
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }), 500
 
     @app.route("/spec")
     def spec():

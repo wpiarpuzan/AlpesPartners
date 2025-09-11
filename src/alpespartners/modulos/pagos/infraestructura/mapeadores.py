@@ -10,14 +10,31 @@ class MapeadorPayout(Mapeador):
 
     def entidad_a_dto(self, entidad: Payout) -> PayoutModel:
         """Convierte una entidad de dominio Payout a un DTO de persistencia."""
-        
+        # Asignar valores por defecto para los campos obligatorios de medio_pago
+        tipo_medio_pago = getattr(entidad.medio_pago, 'tipo', None) if hasattr(entidad, 'medio_pago') else None
+        mask_medio_pago = getattr(entidad.medio_pago, 'mask', None) if hasattr(entidad, 'medio_pago') else None
+        from alpespartners.modulos.pagos.dominio.objetos_valor import TipoMedioPago
+        # Si el tipo es Enum, usar .value
+        if tipo_medio_pago and hasattr(tipo_medio_pago, 'value'):
+            tipo_medio_pago = tipo_medio_pago.value
+        else:
+            tipo_medio_pago = tipo_medio_pago or TipoMedioPago.TRANSFERENCIA.value
+        mask_medio_pago = mask_medio_pago or 'XXXXXXXXXXXX'
+        # Asegurar que el monto sea Decimal
+        total_amount = float(entidad.monto_total.valor) if entidad.monto_total and hasattr(entidad.monto_total, 'valor') else 0.0
+        from datetime import datetime
+        updated_at = entidad.fecha_creacion if hasattr(entidad, 'fecha_creacion') and entidad.fecha_creacion else datetime.utcnow()
         payout_dto = PayoutModel(
             id=entidad.id,
             partner_id=entidad.partner_id,
             cycle_id=entidad.cycle_id,
-            status=entidad.estado,
-            monto=entidad.monto_total,
-            created_at=entidad.fecha_creacion
+            _total_amount=total_amount,
+            _currency=str(entidad.monto_total.moneda) if entidad.monto_total else 'USD',
+            _payment_method_type=tipo_medio_pago,
+            _payment_method_mask=mask_medio_pago,
+            status=entidad.estado.value if hasattr(entidad.estado, 'value') else entidad.estado,
+            created_at=entidad.fecha_creacion,
+            updated_at=updated_at
         )
         return payout_dto
 

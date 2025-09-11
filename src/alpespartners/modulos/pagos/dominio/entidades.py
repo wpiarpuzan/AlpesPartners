@@ -12,6 +12,7 @@ class Transaction:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     partner_id: str = field(default_factory=str)
     brand_id: str = field(default_factory=str)
+    payout_id: str = field(default=None)
     comision: Monto = field(default_factory=Monto)
     event_type: str = field(default_factory=str)
     event_timestamp: datetime = field(default_factory=datetime.utcnow)
@@ -59,7 +60,8 @@ class Payout:
             payout_id=self.id,
             monto_total=float(self.monto_total.valor),
             moneda=self.monto_total.moneda,
-            transaction_count=len(self.transaction_ids)
+            transaction_count=len(self.transaction_ids),
+            timestamp=datetime.utcnow()
         ))
     
     def procesar_pago(self):

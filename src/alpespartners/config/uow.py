@@ -24,12 +24,19 @@ class UnidadTrabajoSQLAlchemy(UnidadTrabajo):
         return self._batches             
 
     def commit(self):
-        for batch in self.batches:
+        import logging
+        logger = logging.getLogger("batch_logger")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("[UnidadTrabajoSQLAlchemy.commit] INICIO batches")
+        for idx, batch in enumerate(self.batches):
+            logger.debug(f"[UnidadTrabajoSQLAlchemy.commit] Batch {idx}: operacion={batch.operacion}, args={batch.args}, kwargs={batch.kwargs}")
+        logger.debug("[UnidadTrabajoSQLAlchemy.commit] FIN batches")
+        for idx, batch in enumerate(self.batches):
+            print(f"[DEBUG][commit] Ejecutando batch {idx}: operacion={batch.operacion}, args={batch.args}, kwargs={batch.kwargs}")
             lock = batch.lock
             batch.operacion(*batch.args, **batch.kwargs)
-
+            print(f"[DEBUG][commit] Batch {idx} ejecutado")
         db.session.commit()
-
         super().commit()
 
     def rollback(self, savepoint=None):

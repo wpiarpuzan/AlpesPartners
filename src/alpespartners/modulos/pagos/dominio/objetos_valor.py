@@ -7,9 +7,10 @@ def nuevo_id() -> str:
     return str(uuid4())
 
 class EstadoPago(str, Enum):
-        PENDIENTE  = "PENDIENTE"
-        CONFIRMADO = "CONFIRMADO"
-        RECHAZADO  = "RECHAZADO"
+    PENDIENTE  = "PENDIENTE"
+    CALCULADO  = "CALCULADO"
+    CONFIRMADO = "CONFIRMADO"
+    RECHAZADO  = "RECHAZADO"
     
 class TipoMedioPago(str, Enum):
     TARJETA        = "TARJETA"

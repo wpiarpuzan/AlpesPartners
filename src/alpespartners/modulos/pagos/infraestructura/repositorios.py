@@ -15,6 +15,7 @@ class PayoutRepositorioSQLAlchemy(IPayoutRepositorio):
 
     def agregar(self, payout: Payout):
         payout_dto = self._mapeador.entidad_a_dto(payout)
+        print(f"[DEBUG][agregar] PayoutDTO: {payout_dto}")
         self._session.add(payout_dto)
         # El commit se manejará por fuera, en la unidad de trabajo (Unit of Work)
 

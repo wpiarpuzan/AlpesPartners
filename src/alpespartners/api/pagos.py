@@ -27,7 +27,12 @@ def procesar_payout_asincrono():
     except ExcepcionDominio as e:
         return Response(json.dumps({'error': str(e)}), status=400, mimetype='application/json')
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=500, mimetype='application/json')
+        import traceback
+        import logging
+        stack = traceback.format_exc()
+        logging.error(stack)
+        # Retorna el stacktrace en la respuesta para debug
+        return Response(json.dumps({'error': str(e), 'trace': stack}), status=500, mimetype='application/json')
 
 @bp.route('/<id>', methods=('GET',))
 def obtener_payout_por_id(id):
