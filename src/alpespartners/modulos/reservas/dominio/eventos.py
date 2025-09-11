@@ -10,6 +10,8 @@ class ReservaCreada:
     fechaCreacion: datetime
     estado: str = "CREADA"
     schemaVersion: str = "v1"
+    type: str = 'ReservaCreada'
+    data: dict = None
 
 @dataclass
 class ReservaAprobada:
@@ -17,6 +19,8 @@ class ReservaAprobada:
     fechaAprobacion: datetime
     origen: str = "PAGOS"
     schemaVersion: str = "v1"
+    type: str = 'ReservaAprobada'
+    data: dict = None
 
 @dataclass
 class ReservaCancelada:
@@ -24,3 +28,5 @@ class ReservaCancelada:
     motivo: Optional[str]
     fechaCancelacion: datetime
     schemaVersion: str = "v1"
+    type: str = 'ReservaCancelada'
+    data: dict = None

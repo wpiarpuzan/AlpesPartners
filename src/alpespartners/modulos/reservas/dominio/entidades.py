@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional
+from enum import Enum
 
 @dataclass
 class Reserva:
@@ -62,3 +63,8 @@ class ReservaCancelada:
             "motivo": self.motivo,
             "fechaCancelacion": int(self.fechaCancelacion.timestamp() * 1000)
         }
+
+class EstadoReserva(str, Enum):
+    PENDIENTE = 'PENDIENTE'
+    APROBADA = 'APROBADA'
+    CANCELADA = 'CANCELADA'

@@ -4,15 +4,16 @@ ReservasService: Orquesta la lógica de reservas (event sourcing, proyección, i
 import logging
 from alpespartners.modulos.reservas.dominio.entidades import Reserva
 from alpespartners.modulos.reservas.dominio.eventos import ReservaCreada, ReservaAprobada, ReservaCancelada
-from alpespartners.modulos.reservas.infraestructura.repos import ReservaEventStoreRepo, ReservaProyeccionRepo
+from alpespartners.modulos.reservas.infraestructura.repos import ReservaEventStoreRepo, ReservaProyeccionRepo, ReservasViewRepo
 from alpespartners.modulos.reservas.infraestructura.mapeos import ReservaProyeccion
 from alpespartners.modulos.reservas.aplicacion.dto import CrearReservaDTO
-from alpespartners.config.db import SessionLocal
+from alpespartners.config.db import SessionLocal, db
 from alpespartners.seedwork.infraestructura import utils
 import pulsar
 import json
 import threading
 from datetime import datetime
+from alpespartners.modulos.reservas.dominio.entidades import EstadoReserva
 
 # Pulsar topics (should come from config)
 TOPIC_COMANDOS_RESERVAS = 'persistent://public/default/comandos.reservas'
@@ -80,6 +81,20 @@ class ReservasService:
 
     def close(self):
         self.pulsar_client.close()
+
+def crear_reserva_cmd(data):
+    idReserva = data.get('idReserva')
+    idCliente = data.get('idCliente')
+    itinerario = data.get('itinerario')
+    if not idReserva or not idCliente or not isinstance(itinerario, list):
+        raise ValueError('idReserva, idCliente y itinerario[] son requeridos')
+    repo = ReservasViewRepo(db.session)
+    repo.upsert(idReserva, idCliente, EstadoReserva.PENDIENTE.value)
+    return {'status': 'accepted', 'idReserva': idReserva}
+
+def obtener_reserva_qry(id_reserva):
+    repo = ReservasViewRepo(db.session)
+    return repo.get(id_reserva)
 
 # TODO: Inyectar ReservasService en handlers y API vía DI, siguiendo patrón de pagos.
 # TODO: Unificar logging y manejo de errores con seedwork.

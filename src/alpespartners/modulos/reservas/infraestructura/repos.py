@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, DateTime, Integer, JSON, func, UniqueCons
 from alpespartners.config.db import db
 from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
+from alpespartners.modulos.reservas.infraestructura.mapeos import ReservasView
 
 # SQLAlchemy Base is db.Model (from config/db.py)
 
@@ -40,19 +41,18 @@ class ReservaViewRepo:
     def __init__(self, session=None):
         self._session = session or db.session
 
-    def upsert(self, id_reserva, estado):
-        obj = self._session.query(ReservasViewModel).filter_by(id_reserva=id_reserva).one_or_none()
+    def upsert(self, id_reserva, id_cliente, estado):
+        obj = self._session.query(ReservasView).filter_by(id=id_reserva).one_or_none()
         if obj:
             obj.estado = estado
-            obj.updated_at = datetime.utcnow()
         else:
-            obj = ReservasViewModel(id_reserva=id_reserva, estado=estado)
+            obj = ReservasView(id=id_reserva, id_cliente=id_cliente, estado=estado)
             self._session.add(obj)
         self._session.commit()
         return obj
 
     def get(self, id_reserva):
-        obj = self._session.query(ReservasViewModel).filter_by(id_reserva=id_reserva).one_or_none()
+        obj = self._session.query(ReservasView).filter_by(id=id_reserva).one_or_none()
         if obj:
-            return {"idReserva": obj.id_reserva, "estado": obj.estado, "updatedAt": obj.updated_at}
+            return {'idReserva': obj.id, 'idCliente': obj.id_cliente, 'estado': obj.estado}
         return None

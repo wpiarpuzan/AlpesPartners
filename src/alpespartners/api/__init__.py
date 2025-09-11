@@ -51,6 +51,8 @@ def create_app(configuracion: dict = {}):
     from . import pagos
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
+    from alpespartners.modulos.reservas.api import bp as reservas_bp
+    app.register_blueprint(reservas_bp)
 
     # ---- Observabilidad: métricas ----
     from alpespartners.seedwork.observabilidad.metrics import (
