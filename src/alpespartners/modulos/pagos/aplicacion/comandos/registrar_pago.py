@@ -31,23 +31,42 @@ class ProcesarPago(Comando):
 # ===================================
 
 class ProcesarPagoHandler(ComandoHandler):
-    def handle(self, comando: ProcesarPago):
+    def handle(self, payout_dto):
         fabrica = FabricaRepositorio()
         self._repo_payout: IPayoutRepositorio = fabrica.crear_objeto(IPayoutRepositorio)
         self._repo_transacciones: ITransactionRepositorio = fabrica.crear_objeto(ITransactionRepositorio)
 
         payout: Payout = Payout.crear(
-            partner_id=comando.partner_id,
-            cycle_id=comando.cycle_id
+            partner_id=payout_dto.partner_id,
+            cycle_id=payout_dto.cycle_id,
+            payment_method_type=payout_dto.payment_method_type,
+            payment_method_mask=payout_dto.payment_method_mask
         )
+        # Asignar campos adicionales del DTO al objeto de dominio
+        if hasattr(payout, 'monto_total') and payout_dto.monto_total_valor:
+            payout.monto_total.valor = payout_dto.monto_total_valor
+        if hasattr(payout, 'monto_total') and payout_dto.monto_total_moneda:
+            payout.monto_total.moneda = payout_dto.monto_total_moneda
+        if hasattr(payout, 'confirmation_id'):
+            payout.confirmation_id = payout_dto.confirmation_id
+        if hasattr(payout, 'failure_reason'):
+            payout.failure_reason = payout_dto.failure_reason
+        if hasattr(payout, 'medio_pago') and payout_dto.payment_method_type:
+            payout.medio_pago.tipo = payout_dto.payment_method_type
+        if hasattr(payout, 'medio_pago') and payout_dto.payment_method_mask:
+            payout.medio_pago.mask = payout_dto.payment_method_mask
+        if payout_dto.processed_at:
+            payout.processed_at = payout_dto.processed_at
+        if payout_dto.completed_at:
+            payout.completed_at = payout_dto.completed_at
 
         transacciones: list[Transaction] = self._repo_transacciones.obtener_por_partner_y_ciclo(
-            partner_id=comando.partner_id,
-            cycle_id=comando.cycle_id
+            partner_id=payout_dto.partner_id,
+            cycle_id=payout_dto.cycle_id
         )
 
         if not transacciones:
-            print(f"No se encontraron transacciones para el partner {comando.partner_id}, ciclo {comando.cycle_id}. No se procesará el pago.")
+            print(f"No se encontraron transacciones para el partner {payout_dto.partner_id}, ciclo {payout_dto.cycle_id}. No se procesará el pago.")
             return None
 
         payout.calcular_comisiones(transacciones)

@@ -23,14 +23,19 @@ class Payout:
     partner_id: str = field(default_factory=str)
     cycle_id: str = field(default_factory=str)
     monto_total: Monto = field(default_factory=lambda: Monto(valor=0, moneda="USD"))
+    medio_pago: object = field(default_factory=lambda: None)
     transaction_ids: list[str] = field(default_factory=list)
     estado: EstadoPago = field(default=EstadoPago.PENDIENTE)
     fecha_creacion: datetime = field(default_factory=datetime.utcnow)
     eventos: list = field(default_factory=list, repr=False)
 
     @classmethod
-    def crear(cls, partner_id: str, cycle_id: str):
-        payout = cls(partner_id=partner_id, cycle_id=cycle_id, estado=EstadoPago.PENDIENTE)
+    def crear(cls, partner_id: str, cycle_id: str, payment_method_type=None, payment_method_mask=None):
+        from alpespartners.modulos.pagos.dominio.objetos_valor import MedioPago, TipoMedioPago
+        medio_pago = None
+        if payment_method_type and payment_method_mask:
+            medio_pago = MedioPago(tipo=payment_method_type, mascara=payment_method_mask)
+        payout = cls(partner_id=partner_id, cycle_id=cycle_id, estado=EstadoPago.PENDIENTE, medio_pago=medio_pago)
         payout.eventos.append(PayoutCreado(
             payout_id=payout.id,
             partner_id=payout.partner_id,

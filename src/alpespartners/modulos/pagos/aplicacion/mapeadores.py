@@ -4,7 +4,26 @@ from alpespartners.modulos.pagos.infraestructura.dto import PayoutModel
 
 class MapeadorPayoutDTOJson(AppMap):
     def externo_a_dto(self, externo: dict) -> PayoutDTO:
-        return PayoutDTO(partner_id=externo.get("partner_id"), cycle_id=externo.get("cycle_id"))
+        from datetime import datetime
+        def parse_dt(val):
+            if val is None:
+                return None
+            try:
+                return datetime.fromisoformat(val)
+            except Exception:
+                return None
+        return PayoutDTO(
+            partner_id=externo.get("partner_id"),
+            cycle_id=externo.get("cycle_id"),
+            monto_total_valor=externo.get("total_amount"),
+            monto_total_moneda=externo.get("currency"),
+            confirmation_id=externo.get("confirmation_id"),
+            failure_reason=externo.get("failure_reason"),
+            payment_method_type=externo.get("payment_method_type"),
+            payment_method_mask=externo.get("payment_method_mask"),
+            processed_at=parse_dt(externo.get("processed_at")),
+            completed_at=parse_dt(externo.get("completed_at"))
+        )
 
     def dto_a_externo(self, dto: PayoutDTO) -> dict:
         monto_json = None
