@@ -4,16 +4,17 @@ ReservasService: Orquesta la lógica de reservas (event sourcing, proyección, i
 import logging
 from alpespartners.modulos.reservas.dominio.entidades import Reserva
 from alpespartners.modulos.reservas.dominio.eventos import ReservaCreada, ReservaAprobada, ReservaCancelada
-from alpespartners.modulos.reservas.infraestructura.repos import ReservaEventStoreRepo, ReservaProyeccionRepo, ReservasViewRepo
-from alpespartners.modulos.reservas.infraestructura.mapeos import ReservaProyeccion
+from alpespartners.modulos.reservas.infraestructura.repos import ReservaViewRepo
 from alpespartners.modulos.reservas.aplicacion.dto import CrearReservaDTO
-from alpespartners.config.db import SessionLocal, db
+from alpespartners.config.db import db
 from alpespartners.seedwork.infraestructura import utils
 import pulsar
 import json
 import threading
 from datetime import datetime
 from alpespartners.modulos.reservas.dominio.entidades import EstadoReserva
+from alpespartners.modulos.reservas.infraestructura.event_store import append_event
+from alpespartners.modulos.reservas.infraestructura.publisher import publish_event
 
 # Pulsar topics (should come from config)
 TOPIC_COMANDOS_RESERVAS = 'persistent://public/default/comandos.reservas'
@@ -22,10 +23,11 @@ TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos.pagos'
 
 class ReservasService:
     def __init__(self, db_session=None):
-        self.db_session = db_session or SessionLocal()
-        self.event_repo = ReservaEventStoreRepo(self.db_session)
-        self.proy_repo = ReservaProyeccionRepo(self.db_session)
-        self.pulsar_client = pulsar.Client(f'pulsar://{utils.broker_host()}:6650')
+        import os
+        self.db_session = db_session or db.session
+        self.proy_repo = ReservaViewRepo(self.db_session)
+        PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://broker:6650')
+        self.pulsar_client = pulsar.Client(PULSAR_BROKER_URL)
         self.eventos_producer = self.pulsar_client.create_producer(TOPIC_EVENTOS_RESERVAS)
 
     def handle_crear_reserva(self, cmd: CrearReservaDTO):
@@ -88,12 +90,20 @@ def crear_reserva_cmd(data):
     itinerario = data.get('itinerario')
     if not idReserva or not idCliente or not isinstance(itinerario, list):
         raise ValueError('idReserva, idCliente y itinerario[] son requeridos')
-    repo = ReservasViewRepo(db.session)
+    event_data = {
+        'schemaVersion': '1.0',
+        'idReserva': idReserva,
+        'idCliente': idCliente,
+        'itinerario': itinerario
+    }
+    append_event(idReserva, 'ReservaCreada.v1', event_data)
+    publish_event('ReservaCreada.v1', event_data)
+    repo = ReservaViewRepo(db.session)
     repo.upsert(idReserva, idCliente, EstadoReserva.PENDIENTE.value)
     return {'status': 'accepted', 'idReserva': idReserva}
 
 def obtener_reserva_qry(id_reserva):
-    repo = ReservasViewRepo(db.session)
+    repo = ReservaViewRepo(db.session)
     return repo.get(id_reserva)
 
 # TODO: Inyectar ReservasService en handlers y API vía DI, siguiendo patrón de pagos.

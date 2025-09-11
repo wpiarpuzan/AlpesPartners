@@ -9,5 +9,5 @@ class ReservasView(db.Model):
     estado = db.Column(db.String, nullable=False)
     updated_at = db.Column(db.DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)
     __table_args__ = (
-        db.Index("ix_reservas_view_id_reserva", "id_reserva"),
+        db.Index("ix_reservas_view_id", "id"),
     )

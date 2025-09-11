@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from alpespartners.config.db import SessionLocal, engine
 from alpespartners.modulos.reservas.infraestructura import repos as reservas_repos
-from alpespartners.modulos.reservas.aplicacion import handlers as reservas_handlers
+from alpespartners.modulos.reservas.aplicacion.servicio import ReservasService
 from alpespartners.modulos.reservas.aplicacion.dto import CrearReservaDTO
 from alpespartners.modulos.reservas.infraestructura.mapeos import Base as ReservasBase
 from alpespartners.modulos.reservas.infraestructura.proyecciones import Base as ProyeccionesBase
@@ -40,8 +40,8 @@ def get_db():
 async def crear_reserva(cmd: CrearReservaDTO, db: Session = Depends(get_db)):
     """Encola comando CrearReserva y responde si fue encolado."""
     try:
-        handler = reservas_handlers.CrearReservaHandler(db)
-        handler.handle(cmd)
+        service = ReservasService(db)
+        service.handle_crear_reserva(cmd)
         return {"enqueued": True}
     except Exception as e:
         logging.exception("Error en crear_reserva")

@@ -22,11 +22,13 @@ def importar_modelos_alchemy():
 def comenzar_consumidor():
     import alpespartners.modulos.cliente.infraestructura.consumidores as cliente
     import alpespartners.modulos.pagos.infraestructura.consumidores as pagos
+    import alpespartners.modulos.reservas.infraestructura.consumidores as reservas
 
     threading.Thread(target=cliente.suscribirse_a_pagos).start()
     threading.Thread(target=pagos.suscribirse_a_eventos).start()
     threading.Thread(target=cliente.suscribirse_a_comandos).start()
     threading.Thread(target=pagos.suscribirse_a_comandos).start()
+    threading.Thread(target=reservas.suscribirse_a_eventos_pagos, daemon=True).start()
 
 def create_app(configuracion: dict = {}):
     app = Flask(__name__, instance_relative_config=True)

@@ -8,19 +8,21 @@ from alpespartners.modulos.reservas.infraestructura.mapeos import ReservasView
 
 class EventStoreModel(db.Model):
     __tablename__ = "event_store"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    aggregate_id = Column(String, nullable=False, index=True)
-    event_type = Column(String, nullable=False)
-    schema_version = Column(String, nullable=False)
-    payload = Column(JSONB, nullable=False)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    aggregate_id = db.Column(db.String, nullable=False, index=True)
+    aggregate_type = db.Column(db.String, nullable=False, default='Reserva')
+    type = db.Column(db.String, nullable=False)
+    payload = db.Column(db.Text, nullable=False)  # JSON as text
+    occurred_on = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-class ReservasViewModel(db.Model):
-    __tablename__ = "reservas_view"
-    id_reserva = Column(String, primary_key=True)
-    estado = Column(String, nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)
-    __table_args__ = (UniqueConstraint('id_reserva', name='uq_reserva_id'),)
+# class ReservasViewModel(db.Model):
+#     __tablename__ = "reservas_view"
+#     id = db.Column(db.String, primary_key=True)
+#     id_cliente = db.Column(db.String, nullable=False)
+#     estado = db.Column(db.String, nullable=False)
+#     __table_args__ = (
+#         db.Index("ix_reservas_view_id", "id"),
+#     )
 
 class EventStoreRepo:
     def __init__(self, session=None):

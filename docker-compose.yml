@@ -92,6 +92,11 @@ services:
       - "8080:8080"
     command: bash -c "bin/apply-config-from-env.py conf/broker.conf
       &&  exec bin/pulsar broker"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   # Servicios de Alpes Partners
   postgres:
@@ -107,13 +112,18 @@ services:
     profiles: ["alpespartner", "bd"]
     networks:
       - sidecar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U partner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   alpespartner:
     container_name: alpespartner
     hostname: alpespartner
     build:
       context: .
-      dockerfile: alpesparteners.Dockerfile
+      dockerfile: alpespartners.Dockerfile
     image: alpespartners/flask:local
     profiles: ["alpespartner", "monolito"]
     networks: [sidecar, pulsar]
@@ -121,7 +131,7 @@ services:
       SidecarDiscover: "false"
     depends_on:
       broker:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
     restart: on-failure
