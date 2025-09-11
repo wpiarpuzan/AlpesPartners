@@ -54,8 +54,8 @@ def create_app() -> Flask:
     app.register_blueprint(metrics_bp)
 
     # (Opcional) registra aquí tus blueprints de negocio
-    # from .api.reservas import bp as reservas_bp
-    # app.register_blueprint(reservas_bp, url_prefix="/reservas")
+    # from .api.campanias import bp as campanias_bp
+    # app.register_blueprint(campanias_bp, url_prefix="/campanias")
 
     # Health simple (útil para compose)
     @app.get("/health")

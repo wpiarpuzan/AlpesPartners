@@ -7,8 +7,10 @@ _pulsar_client = None
 _producer = None
 _lock = Lock()
 
+
 PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://broker:6650')
-TOPIC_EVENTOS_RESERVAS = os.getenv('TOPIC_EVENTOS_RESERVAS', 'persistent://public/default/eventos.reservas')
+TOPIC_EVENTOS_CAMPANIAS = os.getenv('TOPIC_EVENTOS_CAMPANIAS', 'persistent://public/default/eventos.campanias')
+
 
 def get_producer():
     global _pulsar_client, _producer
@@ -16,7 +18,7 @@ def get_producer():
         if _pulsar_client is None:
             _pulsar_client = pulsar.Client(PULSAR_BROKER_URL)
         if _producer is None:
-            _producer = _pulsar_client.create_producer(TOPIC_EVENTOS_RESERVAS)
+            _producer = _pulsar_client.create_producer(TOPIC_EVENTOS_CAMPANIAS)
     return _producer
 
 def publish_event(type_: str, data: dict):

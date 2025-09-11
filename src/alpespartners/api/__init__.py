@@ -22,13 +22,13 @@ def importar_modelos_alchemy():
 def comenzar_consumidor():
     import alpespartners.modulos.cliente.infraestructura.consumidores as cliente
     import alpespartners.modulos.pagos.infraestructura.consumidores as pagos
-    import alpespartners.modulos.reservas.infraestructura.consumidores as reservas
+    import alpespartners.modulos.campanias.infraestructura.consumidores as campanias
 
     threading.Thread(target=cliente.suscribirse_a_pagos).start()
     threading.Thread(target=pagos.suscribirse_a_eventos).start()
     threading.Thread(target=cliente.suscribirse_a_comandos).start()
     threading.Thread(target=pagos.suscribirse_a_comandos).start()
-    threading.Thread(target=reservas.suscribirse_a_eventos_pagos, daemon=True).start()
+    threading.Thread(target=campanias.suscribirse_a_eventos_pagos, daemon=True).start()
 
 def create_app(configuracion: dict = {}):
     app = Flask(__name__, instance_relative_config=True)
@@ -53,8 +53,8 @@ def create_app(configuracion: dict = {}):
     from . import pagos
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
-    from alpespartners.modulos.reservas.api import bp as reservas_bp
-    app.register_blueprint(reservas_bp)
+    from alpespartners.modulos.campanias.api import bp as campanias_bp
+    app.register_blueprint(campanias_bp)
 
     # ---- Observabilidad: métricas ----
     from alpespartners.seedwork.observabilidad.metrics import (

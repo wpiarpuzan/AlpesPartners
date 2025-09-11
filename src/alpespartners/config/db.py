@@ -8,7 +8,7 @@ db = SQLAlchemy()
 MODEL_MODULES = [   
     "alpespartners.modulos.cliente.infraestructura.dto",  # idem
     "alpespartners.modulos.pago.infraestructura.dto",     # si aún no existe, se ignora
-    "alpespartners.modulos.reservas.infraestructura.repos", # Para event_store
+    "alpespartners.modulos.campanias.infraestructura.repos", # Para event_store
 ]
 
 def init_db(app: Flask):

@@ -136,17 +136,17 @@ services:
         condition: service_healthy
     restart: on-failure
     environment:
-      - ALPESPARTNERS_ADDRESS=alpespartner
-      - PULSAR_ADDRESS=broker
-      - BROKER_HOST=broker
-      - DB_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
-      - DATABASE_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
-      - PULSAR_BROKER_URL=pulsar://broker:6650
-      - TOPIC_COMANDOS_RESERVAS=persistent://public/default/comandos.reservas
-      - TOPIC_EVENTOS_RESERVAS=persistent://public/default/eventos.reservas
-      - PYTHONPATH=/src        # 👈 clave: /src, no "/"
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
+    - ALPESPARTNERS_ADDRESS=alpespartner
+    - PULSAR_ADDRESS=broker
+    - BROKER_HOST=broker
+    - DB_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
+    - DATABASE_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
+    - PULSAR_BROKER_URL=pulsar://broker:6650
+    - TOPIC_COMANDOS_CAMPANIAS=persistent://public/default/comandos.campanias
+    - TOPIC_EVENTOS_CAMPANIAS=persistent://public/default/eventos.campanias
+    - PYTHONPATH=/src        # 👈 clave: /src, no "/"
+    - PYTHONDONTWRITEBYTECODE=1
+    - PYTHONUNBUFFERED=1
     ports:
       - "5000:5000"
     command: flask --app alpespartners.api:create_app run --host=0.0.0.0 --no-reload
