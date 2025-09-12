@@ -1,52 +1,44 @@
-
 import logging
-logging.basicConfig(level=logging.DEBUG)
 import os
+import threading
+import traceback
 
-from flask import Flask, render_template, request, url_for, redirect, jsonify, session
+from flask import Flask, jsonify
 from flask_swagger import swagger
 
-# Identifica el directorio base
-basedir = os.path.abspath(os.path.dirname(__file__))
+logging.basicConfig(level=logging.DEBUG)
 
+# Handlers de dominio (registran comandos/eventos)
 def registrar_handlers():
     import alpespartners.modulos.cliente.aplicacion
     import alpespartners.modulos.pagos.aplicacion
 
+# Modelos SQLAlchemy
 def importar_modelos_alchemy():
     import alpespartners.modulos.cliente.infraestructura.dto
     import alpespartners.modulos.pagos.infraestructura.dto
 
+# Consumidores de eventos (ejemplo, pagos/cliente)
 def comenzar_consumidor():
-    """
-    Este es un código de ejemplo. Aunque esto sea funcional puede ser un poco peligroso tener 
-    threads corriendo por si solos. Mi sugerencia es en estos casos usar un verdadero manejador
-    de procesos y threads como Celery.
-    """
-
-    import threading
     import alpespartners.modulos.cliente.infraestructura.consumidores as cliente
     import alpespartners.modulos.pagos.infraestructura.consumidores as pagos
+    import alpespartners.modulos.campanias.infraestructura.consumidores as campanias
 
-    # Suscripción a eventos
     threading.Thread(target=cliente.suscribirse_a_pagos).start()
     threading.Thread(target=pagos.suscribirse_a_eventos).start()
-
-    # Suscripción a comandos
     threading.Thread(target=cliente.suscribirse_a_comandos).start()
     threading.Thread(target=pagos.suscribirse_a_comandos).start()
+    threading.Thread(target=campanias.suscribirse_a_eventos_pagos, daemon=True).start()
 
-def create_app(configuracion={}):
-    # Init la aplicacion de Flask
+def create_app(configuracion: dict = {}):
     app = Flask(__name__, instance_relative_config=True)
 
     app.secret_key = '9d58f98f-3ae8-4149-a09f-3a8c2012e32c'
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['TESTING'] = configuracion.get('TESTING')
 
-     # Inicializa la DB
+    # Inicializa DB
     from alpespartners.config.db import init_db, db
-    
     init_db(app)
     importar_modelos_alchemy()
     registrar_handlers()
@@ -66,14 +58,17 @@ def create_app(configuracion={}):
     app.register_blueprint(pagos.bp)
     app.register_blueprint(campanias.bp)
 
-    # Manejador global de errores para mostrar el stacktrace en los logs
-    import logging
-    import traceback
+    # ---- Observabilidad: métricas ----
+    from alpespartners.seedwork.observabilidad.metrics import (
+        metrics_bp, register_metrics
+    )
+    register_metrics(app)
+    app.register_blueprint(metrics_bp)
+
+    # ---- Rutas auxiliares ----
     @app.errorhandler(Exception)
     def handle_exception(e):
-        # Imprime el stacktrace completo en los logs
         logging.error("\n" + traceback.format_exc())
-        # Opcional: también puedes retornar el stacktrace en la respuesta para debug
         return jsonify({
             "error": str(e),
             "trace": traceback.format_exc()
