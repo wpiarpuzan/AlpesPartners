@@ -56,13 +56,15 @@ def create_app(configuracion={}):
         if not app.config.get('TESTING'):
             comenzar_consumidor()
 
-     # Importa Blueprints
+    # Importa Blueprints
     from . import cliente
     from . import pagos
+    from . import campanias
 
     # Registro de Blueprints
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
+    app.register_blueprint(campanias.bp)
 
     # Manejador global de errores para mostrar el stacktrace en los logs
     import logging
