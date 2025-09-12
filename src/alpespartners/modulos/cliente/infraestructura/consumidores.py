@@ -37,26 +37,22 @@ def suscribirse_a_pagos():
     while True:
         msg = consumer.receive()
         evento = json.loads(msg.data())
-
-        if evento.get('status') != 'CALCULADO':
-            consumer.acknowledge(msg)
-            continue
-
-        partner_id = evento.get('partner_id')
-        fecha_pago = evento.get('processed_at')
-        if not partner_id or not fecha_pago:
-            consumer.acknowledge(msg)
-            continue
-
-        fecha_pago = datetime.fromisoformat(fecha_pago)
-        cliente = db_session.query(Cliente).filter_by(id=partner_id).first()
-        if cliente:
-            cliente.total_pagos = (cliente.total_pagos or 0) + 1
-            cliente.ultimo_pago = fecha_pago
-            db_session.commit()
-
+        tipo = evento.get('type')
+        data = evento.get('data', {})
+        if tipo == 'ActualizarCliente':
+            accion = data.get('accion')
+            id_cliente = data.get('idCliente')
+            from alpespartners.modulos.cliente.infraestructura.repositorios import ClienteRepositorioSQLAlchemy
+            repo = ClienteRepositorioSQLAlchemy()
+            if accion == 'APROBAR_CAMPANIA':
+                # Aquí podrías sumar una campaña aprobada, actualizar estado, etc.
+                # Ejemplo: repo.actualizar_estado(id_cliente, 'APROBADA')
+                pass
+            elif accion == 'CANCELAR_CAMPANIA':
+                # Aquí podrías sumar una campaña cancelada, actualizar estado, etc.
+                # Ejemplo: repo.actualizar_estado(id_cliente, 'CANCELADA')
+                pass
         consumer.acknowledge(msg)
-
     client.close()
 
 if __name__ == "__main__":

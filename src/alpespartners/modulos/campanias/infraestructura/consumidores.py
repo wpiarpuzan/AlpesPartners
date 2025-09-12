@@ -43,15 +43,29 @@ def suscribirse_a_eventos_pagos():
             tipo = payload.get("type")
             data = payload.get("data")
             id_campania = data.get("idCampania")
-            if tipo == "PagoConfirmado":
-                append_event(id_campania, "CampaniaAprobada.v1", data)
+            if tipo == "PagoExitoso":
+                # Actualizar estado y proyección usando lógica real
+                from alpespartners.modulos.campanias.dominio.entidades import CampaniaAprobada
+                from datetime import datetime
+                evento_aprobada = CampaniaAprobada(
+                    idCampania=id_campania,
+                    fechaAprobacion=datetime.utcnow()
+                )
+                append_event(id_campania, "CampaniaAprobada.v1", evento_aprobada.to_dict())
                 repo.upsert(id_campania, data.get("idCliente"), "APROBADA")
-                publish_event("CampaniaAprobada.v1", data)
+                publish_event("CampaniaAprobada.v1", evento_aprobada.to_dict())
                 logging.info(f"[CAMPANIAS] Campania APROBADA: {id_campania}")
-            elif tipo == "PagoRevertido":
-                append_event(id_campania, "CampaniaCancelada.v1", data)
+            elif tipo == "PagoFallido":
+                from alpespartners.modulos.campanias.dominio.entidades import CampaniaCancelada
+                from datetime import datetime
+                evento_cancelada = CampaniaCancelada(
+                    idCampania=id_campania,
+                    motivo=data.get('reason', 'Pago fallido'),
+                    fechaCancelacion=datetime.utcnow()
+                )
+                append_event(id_campania, "CampaniaCancelada.v1", evento_cancelada.__dict__)
                 repo.upsert(id_campania, data.get("idCliente"), "CANCELADA")
-                publish_event("CampaniaCancelada.v1", data)
+                publish_event("CampaniaCancelada.v1", evento_cancelada.__dict__)
                 logging.info(f"[CAMPANIAS] Campania CANCELADA: {id_campania}")
             consumer.acknowledge(msg)
         except Exception as e:

@@ -31,12 +31,17 @@ def suscribirse_a_comandos(app=None):
             
             logging.info(f"Comando de pago recibido: {data} con correlation_id: {correlation_id}")
             
-            # TODO: Aquí va la lógica para despachar el comando a un manejador en la capa de aplicación.
-            # Este es el punto de entrada para ejecutar tu caso de uso.
-            # Ejemplo:
-            # with app.app_context():
-            #     comando_dominio = ProcesarPago(correlation_id=correlation_id, partner_id=data.partner_id, ...)
-            #     manejador_comandos.handle(comando_dominio)
+            # Ejecutar el handler real de ProcesarPago
+            from alpespartners.modulos.pagos.aplicacion.comandos.registrar_pago import ProcesarPagoHandler
+            from alpespartners.modulos.pagos.aplicacion.dto import PayoutDTO
+            handler = ProcesarPagoHandler()
+            payout_dto = PayoutDTO(
+                partner_id=data.partner_id,
+                cycle_id=data.cycle_id,
+                confirmation_id=None,
+                failure_reason=None
+            )
+            handler.handle(payout_dto)
 
             consumidor.acknowledge(mensaje)     
 
