@@ -48,13 +48,15 @@ def create_app(configuracion: dict = {}):
         if not app.config.get('TESTING'):
             comenzar_consumidor()
 
-    # Importa y registra Blueprints de negocio
+    # Importa Blueprints
     from . import cliente
     from . import pagos
+    from . import campanias
+
+    # Registro de Blueprints
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
-    from alpespartners.modulos.campanias.api import bp as campanias_bp
-    app.register_blueprint(campanias_bp)
+    app.register_blueprint(campanias.bp)
 
     # ---- Observabilidad: métricas ----
     from alpespartners.seedwork.observabilidad.metrics import (

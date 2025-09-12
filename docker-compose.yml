@@ -124,7 +124,7 @@ services:
     build:
       context: .
       dockerfile: alpespartners.Dockerfile
-    image: alpespartners/flask:local
+     #image: alpespartners/flask:local
     profiles: ["alpespartner", "monolito"]
     networks: [sidecar, pulsar]
     labels:
