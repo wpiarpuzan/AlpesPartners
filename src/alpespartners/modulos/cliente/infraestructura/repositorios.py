@@ -5,6 +5,7 @@ from .dto import ClienteModel
 from typing import Optional
 from alpespartners.modulos.cliente.dominio.entidades import ClienteNatural
 from .mapeadores import modelo_a_cliente
+from .mapeadores import cliente_a_modelo
 
 class ClienteRepositorioSQLAlchemy(IClienteRepositorio):
 
@@ -19,3 +20,9 @@ class ClienteRepositorioSQLAlchemy(IClienteRepositorio):
     def obtener_por_id(self, cliente_id: str) -> Optional[ClienteNatural]:
         m = db.session.get(ClienteModel, cliente_id)
         return modelo_a_cliente(m) if m else None
+    
+    def agregar(self, cliente: ClienteNatural):
+        cliente_dto = cliente_a_modelo(cliente)
+        print(f"[DEBUG][agregar] ClienteDTO: {cliente_dto}")
+        db.session.add(cliente_dto)
+        # El commit se manejará por fuera, en la unidad de trabajo (Unit of Work)

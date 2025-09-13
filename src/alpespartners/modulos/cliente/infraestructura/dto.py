@@ -19,6 +19,7 @@ class ClienteModel(db.Model):
     email          = db.Column(db.String(120), nullable=False, unique=True)
     cedula         = db.Column(db.String(120), nullable=False, unique=True)    
     fecha_registro = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    fecha_nacimiento = db.Column(db.DateTime, nullable=False) 
 
     # === NUEVO: proyección alimentada por eventos de pago ===
     total_pagos = db.Column(db.Integer, nullable=False, default=0)
