@@ -1,54 +1,51 @@
 """
 Adaptador para el servicio de clientes
 
-Este adaptador implementa la comunicación directa con el módulo de clientes
-de Alpes Partners, convirtiendo entre los modelos del BFF y los del servicio.
+Este adaptador implementa la comunicación HTTP con las APIs REST del servicio
+de clientes de Alpes Partners, convirtiendo entre los modelos del BFF y los del servicio.
 """
 
 import asyncio
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
+import logging
 
 from bff.application.ports import IClienteService
 from bff.domain.models import ClienteWeb, PaginatedResult, PaginationInfo, EstadoCliente
 from bff.domain.exceptions import ClienteNotFoundException, ServiceUnavailableException
 
-# Imports de servicios existentes de Alpes Partners
-from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando
-from alpespartners.seedwork.aplicacion.queries import ejecutar_query
-from alpespartners.modulos.cliente.aplicacion.comandos.registrar_cliente import RegistrarCliente
-from alpespartners.modulos.cliente.aplicacion.queries.obtener_cliente import ObtenerClientePorId
+# Cliente HTTP para comunicación con microservicios
+from bff.infrastructure.http_client import ClienteServiceHttpClient
 
 
 class ClienteServiceAdapter(IClienteService):
-    """Adaptador para el servicio de clientes interno"""
+    """Adaptador para el servicio de clientes via HTTP"""
     
-    def __init__(self):
+    def __init__(self, http_client: ClienteServiceHttpClient):
+        self.http_client = http_client
         self.service_name = "cliente"
+        self.logger = logging.getLogger(__name__)
     
     async def obtener_cliente(self, cliente_id: str) -> Optional[ClienteWeb]:
-        """Obtiene un cliente por ID utilizando el servicio interno"""
+        """Obtiene un cliente por ID utilizando HTTP REST API"""
         try:
-            # Ejecutar query de forma síncrona y convertir a async
-            query_resultado = await asyncio.get_event_loop().run_in_executor(
-                None, ejecutar_query, ObtenerClientePorId(cliente_id)
-            )
-            
-            if not query_resultado.resultado:
+            data = await self.http_client.obtener_cliente(cliente_id)
+            if not data:
                 return None
             
-            data = query_resultado.resultado
             return self._convert_to_cliente_web(data)
             
         except Exception as e:
+            self.logger.error(f"Error obteniendo cliente {cliente_id}: {str(e)}")
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def listar_clientes(self, pagination: PaginationInfo) -> PaginatedResult:
-        """Lista clientes con paginación (simulado por ahora)"""
+        """Lista clientes con paginación"""
         try:
-            # Por ahora simulamos datos, en producción se implementaría
-            # una query específica con paginación
+            # El servicio backend no tiene endpoint de listado aún, usamos mock
+            self.logger.warning("Endpoint de listado no disponible en servicio backend, usando datos mock")
+            
             clientes_mock = [
                 ClienteWeb(
                     id=str(uuid.uuid4()),
@@ -60,7 +57,7 @@ class ClienteServiceAdapter(IClienteService):
                     total_pagos=i * 2,
                     campanias_activas=1
                 )
-                for i in range(1, 11)
+                for i in range(1, 26)  # 25 clientes simulados
             ]
             
             start_idx = (pagination.page - 1) * pagination.per_page
@@ -79,35 +76,22 @@ class ClienteServiceAdapter(IClienteService):
             return PaginatedResult(items=items, pagination=pagination_info)
             
         except Exception as e:
+            self.logger.error(f"Error listando clientes: {str(e)}")
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def crear_cliente(self, datos: Dict[str, Any]) -> ClienteWeb:
-        """Crea un nuevo cliente utilizando el comando interno"""
+        """Crea un nuevo cliente utilizando HTTP REST API"""
         try:
-            comando = RegistrarCliente(
-                id=datos.get('id', str(uuid.uuid4())),
-                nombre=datos['nombre'],
-                email=datos['email'],
-                cedula=datos['cedula'],
-                fecha_nacimiento=datos['fecha_nacimiento']
-            )
+            # Agregar ID si no existe
+            if 'id' not in datos:
+                datos['id'] = str(uuid.uuid4())
             
-            cliente_creado = await asyncio.get_event_loop().run_in_executor(
-                None, ejecutar_commando, comando
-            )
+            cliente_data = await self.http_client.crear_cliente(datos)
             
-            # Convertir el resultado del comando a ClienteWeb
-            return ClienteWeb(
-                id=str(cliente_creado.id),
-                nombre=cliente_creado.nombre,
-                email=cliente_creado.email.valor if hasattr(cliente_creado.email, 'valor') else cliente_creado.email,
-                cedula=cliente_creado.cedula.numero if hasattr(cliente_creado.cedula, 'numero') else str(cliente_creado.cedula),
-                fecha_registro=cliente_creado.fecha_registro,
-                estado=EstadoCliente.ACTIVO,
-                total_pagos=0
-            )
+            return self._convert_to_cliente_web(cliente_data)
             
         except Exception as e:
+            self.logger.error(f"Error creando cliente: {str(e)}")
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def buscar_clientes(self, termino: str, pagination: PaginationInfo) -> PaginatedResult:
@@ -119,7 +103,7 @@ class ClienteServiceAdapter(IClienteService):
         filtered_clients = [
             cliente for cliente in all_clients.items
             if termino.lower() in cliente.nombre.lower() or 
-               termino.lower() in cliente.email.lower()
+                termino.lower() in cliente.email.lower()
         ]
         
         start_idx = (pagination.page - 1) * pagination.per_page
@@ -154,14 +138,33 @@ class ClienteServiceAdapter(IClienteService):
         }
     
     def _convert_to_cliente_web(self, data: Dict[str, Any]) -> ClienteWeb:
-        """Convierte datos del servicio interno al modelo BFF"""
+        """Convierte datos del servicio HTTP al modelo BFF"""
+        # Manejo de fechas con múltiples formatos posibles
+        fecha_registro = None
+        if data.get('fecha_registro'):
+            fecha_str = data['fecha_registro']
+            if isinstance(fecha_str, str):
+                try:
+                    fecha_registro = datetime.fromisoformat(fecha_str.replace('Z', '+00:00'))
+                except ValueError:
+                    fecha_registro = datetime.now()
+        
+        ultimo_pago = None
+        if data.get('ultimo_pago'):
+            ultimo_str = data['ultimo_pago']
+            if isinstance(ultimo_str, str):
+                try:
+                    ultimo_pago = datetime.fromisoformat(ultimo_str.replace('Z', '+00:00'))
+                except ValueError:
+                    pass
+        
         return ClienteWeb(
-            id=data['id'],
+            id=str(data['id']),
             nombre=data['nombre'],
             email=data['email'],
-            cedula=data.get('cedula'),
-            fecha_registro=datetime.fromisoformat(data['fecha_registro']) if data.get('fecha_registro') else None,
+            cedula=str(data.get('cedula', '')),
+            fecha_registro=fecha_registro or datetime.now(),
             estado=EstadoCliente.ACTIVO,  # Por defecto activo
-            total_pagos=data.get('total_pagos', 0),
-            ultimo_pago=datetime.fromisoformat(data['ultimo_pago']) if data.get('ultimo_pago') else None
+            total_pagos=int(data.get('total_pagos', 0)),
+            ultimo_pago=ultimo_pago
         )

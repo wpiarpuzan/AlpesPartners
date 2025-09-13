@@ -5,6 +5,9 @@ Implementa el patrón Dependency Injection para configurar
 todas las dependencias de la aplicación.
 """
 
+import os
+import logging
+
 from bff.application.ports import IClienteService, IPagoService, ICampaniaService, ICacheService, ILoggerService
 from bff.infrastructure.adapters.cliente_adapter import ClienteServiceAdapter
 from bff.infrastructure.adapters.pago_adapter import PagoServiceAdapter
@@ -13,25 +16,47 @@ from bff.infrastructure.adapters import InMemoryCacheAdapter, PythonLoggerAdapte
 from bff.application.use_cases import (
     DashboardUseCase, ClienteDetalleUseCase, BusquedaIntegradaUseCase, ValidacionUseCase
 )
+from bff.infrastructure.http_client import HttpClientFactory
 
 
 class DIContainer:
     """Contenedor de inyección de dependencias"""
     
     def __init__(self):
+        # Configuración de URLs de servicios backend
+        self.alpespartners_base_url = os.getenv('ALPESPARTNERS_SERVICE_URL', 'http://localhost:5000')
+        self.http_timeout = int(os.getenv('BFF_HTTP_TIMEOUT', '30'))
+        
         # Servicios de infraestructura
         self._logger_service = PythonLoggerAdapter("bff")
         self._cache_service = InMemoryCacheAdapter()
         
-        # Adaptadores de servicios backend
-        self._cliente_service = ClienteServiceAdapter()
-        self._pago_service = PagoServiceAdapter()
-        self._campania_service = CampaniaServiceAdapter()
+        # Clientes HTTP para servicios backend
+        self._cliente_http_client = HttpClientFactory.create_cliente_client(
+            self.alpespartners_base_url, self.http_timeout
+        )
+        self._pago_http_client = HttpClientFactory.create_pago_client(
+            self.alpespartners_base_url, self.http_timeout
+        )
+        self._campania_http_client = HttpClientFactory.create_campania_client(
+            self.alpespartners_base_url, self.http_timeout
+        )
+        
+        # Adaptadores de servicios backend (usando clientes HTTP)
+        self._cliente_service = ClienteServiceAdapter(self._cliente_http_client)
+        self._pago_service = PagoServiceAdapter(self._pago_http_client)
+        self._campania_service = CampaniaServiceAdapter(self._campania_http_client)
         
         # Casos de uso
         self._dashboard_use_case = None
         self._cliente_detalle_use_case = None
         self._busqueda_integrada_use_case = None
+        
+        # Configurar logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
     
     @property
     def logger_service(self) -> ILoggerService:
@@ -91,6 +116,15 @@ class DIContainer:
     @property
     def validacion_use_case(self) -> ValidacionUseCase:
         return ValidacionUseCase()
+    
+    async def cleanup(self):
+        """Limpia recursos y cierra conexiones"""
+        try:
+            await self._cliente_http_client.http_client.close()
+            await self._pago_http_client.http_client.close()
+            await self._campania_http_client.http_client.close()
+        except Exception as e:
+            logging.error(f"Error cerrando conexiones HTTP: {e}")
 
 
 # Instancia global del contenedor

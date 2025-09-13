@@ -24,19 +24,27 @@ def main():
     port = int(os.getenv('BFF_PORT', 5001))
     debug = os.getenv('BFF_DEBUG', 'False').lower() == 'true'
     
+    # Configuración de servicios backend
+    alpespartners_url = os.getenv('ALPESPARTNERS_SERVICE_URL', 'http://localhost:5000')
+    http_timeout = os.getenv('BFF_HTTP_TIMEOUT', '30')
+    
     print(f"""
     🚀 Iniciando Alpes Partners BFF - Web UI
     
-    📍 URL: http://{host}:{port}
+    📍 BFF URL: http://{host}:{port}
     🔧 Modo Debug: {debug}
-    📚 Documentación: http://{host}:{port}/api/v1/health
+    🌐 Backend URL: {alpespartners_url}
+    ⏱️  HTTP Timeout: {http_timeout}s
     
     Endpoints principales:
+    • Health: http://{host}:{port}/api/v1/health
     • Dashboard: http://{host}:{port}/api/v1/dashboard
     • Clientes: http://{host}:{port}/api/v1/clientes
     • Pagos: http://{host}:{port}/api/v1/pagos
     • Campañas: http://{host}:{port}/api/v1/campanias
-    • Búsqueda: http://{host}:{port}/api/v1/search
+    • Búsqueda: http://{host}:{port}/api/v1/search?q=termino
+    
+    🔗 Comunicación: BFF → HTTP REST → AlpesPartners Services
     """)
     
     app.run(host=host, port=port, debug=debug)

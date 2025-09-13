@@ -1,46 +1,43 @@
 """
 Adaptador para el servicio de pagos
 
-Este adaptador implementa la comunicación directa con el módulo de pagos
-de Alpes Partners, convirtiendo entre los modelos del BFF y los del servicio.
+Este adaptador implementa la comunicación HTTP con las APIs REST del servicio
+de pagos de Alpes Partners, convirtiendo entre los modelos del BFF y los del servicio.
 """
 
-import asyncio
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from decimal import Decimal
 import uuid
+import logging
 
 from bff.application.ports import IPagoService
 from bff.domain.models import PagoWeb, PaginatedResult, PaginationInfo, EstadoPago
 from bff.domain.exceptions import PagoNotFoundException, ServiceUnavailableException
 
-# Imports de servicios existentes de Alpes Partners
-from alpespartners.seedwork.aplicacion.queries import ejecutar_query
-from alpespartners.modulos.pagos.aplicacion.queries.obtener_pago import ObtenerPayout
-from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
+# Cliente HTTP para comunicación con microservicios
+from bff.infrastructure.http_client import PagoServiceHttpClient
 
 
 class PagoServiceAdapter(IPagoService):
-    """Adaptador para el servicio de pagos interno"""
+    """Adaptador para el servicio de pagos via HTTP"""
     
-    def __init__(self):
+    def __init__(self, http_client: PagoServiceHttpClient):
+        self.http_client = http_client
         self.service_name = "pagos"
-        self.mapeador = MapeadorPayoutDTOJson()
+        self.logger = logging.getLogger(__name__)
     
     async def obtener_pago(self, pago_id: str) -> Optional[PagoWeb]:
-        """Obtiene un pago por ID utilizando el servicio interno"""
+        """Obtiene un pago por ID utilizando HTTP REST API"""
         try:
-            query_resultado = await asyncio.get_event_loop().run_in_executor(
-                None, ejecutar_query, ObtenerPayout(id=pago_id)
-            )
-            
-            if not query_resultado.resultado:
+            data = await self.http_client.obtener_pago(pago_id)
+            if not data:
                 return None
             
-            return self._convert_to_pago_web(query_resultado.resultado)
+            return self._convert_to_pago_web(data)
             
         except Exception as e:
+            self.logger.error(f"Error obteniendo pago {pago_id}: {str(e)}")
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def listar_pagos(self, pagination: PaginationInfo, filtros: Dict[str, Any] = None) -> PaginatedResult:
@@ -88,23 +85,13 @@ class PagoServiceAdapter(IPagoService):
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def crear_pago(self, datos: Dict[str, Any]) -> PagoWeb:
-        """Crea un nuevo pago (implementación mock)"""
+        """Crea un nuevo pago utilizando HTTP REST API"""
         try:
-            # En producción se usaría el comando ProcesarPago
-            nuevo_pago = PagoWeb(
-                id=f"payout-{uuid.uuid4().hex[:8]}",
-                partner_id=datos['partner_id'],
-                cliente_nombre=datos.get('cliente_nombre'),
-                monto=Decimal(str(datos['monto'])),
-                moneda=datos.get('moneda', 'USD'),
-                estado=EstadoPago.PENDIENTE,
-                fecha_creacion=datetime.now(),
-                metodo_pago=datos.get('metodo_pago', 'CREDIT_CARD')
-            )
-            
-            return nuevo_pago
+            pago_data = await self.http_client.crear_pago(datos)
+            return self._convert_to_pago_web(pago_data)
             
         except Exception as e:
+            self.logger.error(f"Error creando pago: {str(e)}")
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def obtener_pagos_por_cliente(self, cliente_id: str, limit: int = 10) -> List[PagoWeb]:
@@ -149,23 +136,44 @@ class PagoServiceAdapter(IPagoService):
         except Exception as e:
             raise ServiceUnavailableException(self.service_name, str(e))
     
-    def _convert_to_pago_web(self, payout_dto) -> PagoWeb:
-        """Convierte DTO interno al modelo BFF"""
+    def _convert_to_pago_web(self, data: Dict[str, Any]) -> PagoWeb:
+        """Convierte datos HTTP al modelo BFF"""
         estado_mapping = {
             "PENDIENTE": EstadoPago.PENDIENTE,
             "CALCULADO": EstadoPago.PROCESANDO,
             "EN_PROCESO": EstadoPago.PROCESANDO,
             "EXITOSO": EstadoPago.COMPLETADO,
+            "COMPLETADO": EstadoPago.COMPLETADO,
             "FALLIDO": EstadoPago.FALLIDO
         }
         
+        # Manejo de fechas
+        fecha_creacion = None
+        if data.get('fecha_creacion'):
+            fecha_str = data['fecha_creacion']
+            if isinstance(fecha_str, str):
+                try:
+                    fecha_creacion = datetime.fromisoformat(fecha_str.replace('Z', '+00:00'))
+                except ValueError:
+                    fecha_creacion = datetime.now()
+        
+        # Determinar el monto (puede venir en diferentes campos según el endpoint)
+        monto = Decimal('0')
+        if 'monto_total' in data:
+            monto = Decimal(str(data['monto_total']))
+        elif 'monto' in data:
+            monto = Decimal(str(data['monto']))
+        elif 'total_amount' in data:
+            monto = Decimal(str(data['total_amount']))
+        
         return PagoWeb(
-            id=payout_dto.id,
-            partner_id=payout_dto.partner_id,
-            monto=payout_dto.monto_total_valor or Decimal('0'),
-            moneda=payout_dto.monto_total_moneda or "USD",
-            estado=estado_mapping.get(payout_dto.estado, EstadoPago.PENDIENTE),
-            fecha_creacion=payout_dto.fecha_creacion,
-            metodo_pago=payout_dto.payment_method_type,
-            confirmation_id=payout_dto.confirmation_id
+            id=str(data['id']),
+            partner_id=str(data.get('partner_id', '')),
+            cliente_nombre=str(data.get('cliente_nombre', data.get('partner_id', ''))),
+            monto=monto,
+            moneda=str(data.get('moneda', data.get('currency', 'USD'))),
+            estado=estado_mapping.get(str(data.get('estado', 'PENDIENTE')).upper(), EstadoPago.PENDIENTE),
+            fecha_creacion=fecha_creacion or datetime.now(),
+            metodo_pago=str(data.get('metodo_pago', data.get('payment_method_type', 'CREDIT_CARD'))),
+            confirmation_id=data.get('confirmation_id')
         )

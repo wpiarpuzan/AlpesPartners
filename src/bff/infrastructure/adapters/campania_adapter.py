@@ -1,25 +1,30 @@
 """
 Adaptador para el servicio de campañas
 
-Este adaptador implementa la comunicación con el módulo de campañas
-de Alpes Partners (actualmente mock).
+Este adaptador implementa la comunicación HTTP con las APIs REST del servicio
+de campañas de Alpes Partners, convirtiendo entre los modelos del BFF y los del servicio.
 """
 
-import asyncio
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
+import logging
 
 from bff.application.ports import ICampaniaService
 from bff.domain.models import CampaniaWeb, PaginatedResult, PaginationInfo, EstadoCampania
 from bff.domain.exceptions import CampaniaNotFoundException, ServiceUnavailableException
 
+# Cliente HTTP para comunicación con microservicios
+from bff.infrastructure.http_client import CampaniaServiceHttpClient
+
 
 class CampaniaServiceAdapter(ICampaniaService):
-    """Adaptador para el servicio de campañas interno"""
+    """Adaptador para el servicio de campañas via HTTP"""
     
-    def __init__(self):
+    def __init__(self, http_client: CampaniaServiceHttpClient):
+        self.http_client = http_client
         self.service_name = "campanias"
+        self.logger = logging.getLogger(__name__)
     
     async def obtener_campania(self, campania_id: str) -> Optional[CampaniaWeb]:
         """Obtiene una campaña por ID"""

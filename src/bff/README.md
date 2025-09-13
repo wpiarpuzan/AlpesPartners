@@ -1,125 +1,228 @@
 # BFF Web UI - Backend For Frontend
 
 ## Descripción
-Backend For Frontend optimizado para interfaces web del sistema Alpes Partners. Implementa arquitectura hexagonal con las mejores prácticas de desarrollo.
+Backend For Frontend optimizado para interfaces web del sistema Alpes Partners. Implementa **arquitectura hexagonal** con comunicación HTTP a microservicios, siguiendo principios de **autonomía y desacoplamiento**.
 
-## Arquitectura
+## ✅ Arquitectura Corregida
+
+### Principios Aplicados
+- 🚫 **Sin imports directos** a módulos alpespartners
+- 🌐 **Comunicación HTTP exclusiva** con APIs REST
+- 🔄 **Ciclo de vida autónomo** del BFF
+- 📦 **Desacoplamiento total** entre servicios
 
 ### Hexagonal Architecture
 ```
 📁 bff/
 ├── 🏛️ domain/           # Dominio del BFF
 │   ├── models/          # Modelos específicos para UI web
-│   └── exceptions/      # Excepciones del dominio
+│   └── exceptions/      # Excepciones del dominio BFF
 ├── 🎯 application/      # Casos de uso y puertos
-│   ├── use_cases/       # Casos de uso específicos para web
-│   └── ports/           # Interfaces (puertos)
+│   ├── use_cases/       # Casos de uso web-optimizados
+│   └── ports/           # Interfaces (puertos de entrada/salida)
 └── 🔧 infrastructure/   # Adaptadores e infraestructura
-    ├── adapters/        # Adaptadores para servicios backend
+    ├── http_client.py   # 🆕 Cliente HTTP para microservicios
+    ├── adapters/        # Adaptadores HTTP (no imports directos)
     ├── web/            # Framework web (Flask)
-    └── config.py       # Configuración e inyección de dependencias
+    └── config.py       # Inyección de dependencias
 ```
 
-### Patrones Implementados
-- ✅ **Hexagonal Architecture** (Ports & Adapters)
-- ✅ **Dependency Injection** con contenedor DI
-- ✅ **CQRS** para separar lecturas y escrituras
-- ✅ **Repository Pattern** via adaptadores
-- ✅ **Use Case Pattern** para lógica de negocio
-- ✅ **DTO Pattern** para transferencia de datos
+### Comunicación HTTP
+```
+┌─────────────────┐    HTTP REST    ┌─────────────────────────┐
+│   Frontend      │ ──────────────► │      BFF (5001)         │
+│   (React/Vue)   │ ◄────────────── │   • Dashboard           │
+└─────────────────┘                 │   • Agregación          │
+                                    │   • Cache               │
+                                    │   • Validación          │
+                                    └─────────────────────────┘
+                                               │ HTTP REST
+                                               ▼
+                                    ┌─────────────────────────┐
+                                    │  AlpesPartners (5000)   │
+                                    │   • /cliente/registrar  │
+                                    │   • /pagos/pagar        │ 
+                                    │   • /campanias/crear    │
+                                    └─────────────────────────┘
+```
 
-## Endpoints API
+## 🔧 Configuración y Ejecución
 
-### Dashboard
-- `GET /api/v1/dashboard` - Datos agregados del dashboard
-
-### Clientes
-- `GET /api/v1/clientes` - Lista clientes (paginado)
-- `GET /api/v1/clientes/{id}` - Detalle de cliente
-- `POST /api/v1/clientes` - Crear cliente
-
-### Pagos
-- `GET /api/v1/pagos` - Lista pagos (paginado)
-- `GET /api/v1/pagos/{id}` - Detalle de pago
-
-### Campañas
-- `GET /api/v1/campanias` - Lista campañas (paginado)
-
-### Búsqueda
-- `GET /api/v1/search?q={term}` - Búsqueda integrada
-
-### Health
-- `GET /api/v1/health` - Health check
-
-## Ejecutar BFF
-
-### Desarrollo
+### Variables de Entorno Críticas
 ```bash
-# Desde la raíz del proyecto
+# URLs de servicios backend
+ALPESPARTNERS_SERVICE_URL=http://localhost:5000  # 🎯 URL base microservicios
+
+# Configuración BFF
+BFF_HOST=0.0.0.0
+BFF_PORT=5001
+BFF_DEBUG=true
+BFF_HTTP_TIMEOUT=30
+
+# Ver .env.bff.example para configuración completa
+```
+
+### Ejecución Local
+```bash
+# 1. Iniciar servicios backend (AlpesPartners)
 cd src
+flask --app alpespartners/api --debug run --port 5000
+
+# 2. En otro terminal, iniciar BFF
+cd src
+export ALPESPARTNERS_SERVICE_URL=http://localhost:5000
 python -m bff.main
+```
 
-# O usando Flask directamente
+### Con Flask directamente
+```bash
 export FLASK_APP=bff.infrastructure.web.app:create_bff_app
-flask run --port 5001
+export ALPESPARTNERS_SERVICE_URL=http://localhost:5000
+flask run --port 5001 --debug
 ```
 
-### Variables de Entorno
-- `BFF_HOST` - Host del servidor (default: 0.0.0.0)
-- `BFF_PORT` - Puerto del servidor (default: 5001)
-- `BFF_DEBUG` - Modo debug (default: False)
-- `BFF_SECRET_KEY` - Clave secreta para Flask
+## 🌐 APIs del BFF
 
-### Con Docker
+### Endpoints Principales
+| Endpoint | Método | Descripción | Backend |
+|----------|---------|-------------|---------|
+| `/api/v1/health` | GET | Health check + estado servicios | - |
+| `/api/v1/dashboard` | GET | Datos agregados dashboard | Múltiples |
+| `/api/v1/clientes` | GET | Lista paginada clientes | HTTP → `/cliente/{id}` |
+| `/api/v1/clientes/{id}` | GET | Detalle cliente + datos relacionados | HTTP → múltiples endpoints |
+| `/api/v1/clientes` | POST | Crear cliente | HTTP → `/cliente/registrar` |
+| `/api/v1/pagos` | GET | Lista paginada pagos | HTTP → `/pagos/{id}` |
+| `/api/v1/pagos/{id}` | GET | Detalle pago | HTTP → `/pagos/{id}` |
+| `/api/v1/campanias` | GET | Lista campañas | HTTP → `/campanias/{id}` |
+| `/api/v1/search` | GET | Búsqueda integrada multi-servicio | HTTP → múltiples |
+
+### Optimizaciones BFF
+- ✅ **Agregación de datos**: Dashboard combina múltiples servicios
+- ✅ **Paginación inteligente**: Metadata completa para UI
+- ✅ **Búsqueda unificada**: Un endpoint para múltiples servicios
+- ✅ **Vista detallada**: Cliente + pagos + campañas en una request
+- ✅ **Cache en memoria**: Reduce llamadas HTTP repetitivas
+- ✅ **Manejo de errores**: Fallback a datos mock si servicios fallan
+
+## 🛠️ Implementación HTTP
+
+### Cliente HTTP Base
+```python
+# bff/infrastructure/http_client.py
+class AlpesPartnersHttpClient:
+    def __init__(self, base_url: str, timeout: int = 30):
+        self.base_url = base_url  # http://localhost:5000
+        
+    async def get(self, endpoint: str) -> Dict[str, Any]:
+        # GET http://localhost:5000/cliente/123
+        
+    async def post(self, endpoint: str, data: Dict) -> Dict[str, Any]:
+        # POST http://localhost:5000/cliente/registrar
+```
+
+### Adaptadores HTTP
+```python
+# bff/infrastructure/adapters/cliente_adapter.py
+class ClienteServiceAdapter:
+    def __init__(self, http_client: ClienteServiceHttpClient):
+        self.http_client = http_client  # 🚫 No imports directos
+    
+    async def obtener_cliente(self, id: str):
+        # HTTP GET /cliente/{id} en lugar de import directo
+        data = await self.http_client.obtener_cliente(id)
+```
+
+## 🔄 Ventajas de la Nueva Implementación
+
+### ✅ Microservicios Reales
+- **Autonomía**: BFF tiene su propio ciclo de vida
+- **Escalabilidad**: Servicios pueden escalarse independientemente  
+- **Despliegue**: BFF y core services en containers separados
+- **Mantenibilidad**: Cambios en core services no afectan BFF
+
+### ✅ Comunicación HTTP
+- **Estándar**: REST APIs como interfaz única entre servicios
+- **Monitoreo**: Requests HTTP se pueden interceptar y monitorear
+- **Load Balancing**: Múltiples instancias de servicios backend
+- **Resilencia**: Timeouts, reintentos, circuit breakers
+
+### ✅ Desarrollo
+- **Testing**: BFF se puede testear con mocks HTTP
+- **Debug**: Tráfico HTTP es visible en logs/herramientas
+- **Documentación**: APIs REST auto-documentadas
+
+## 📦 Deployment
+
+### Docker Compose (Ejemplo)
+```yaml
+version: '3.8'
+services:
+  alpespartners-core:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_APP=alpespartners/api
+    
+  bff-web:
+    build: 
+      context: .
+      dockerfile: bff.Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - ALPESPARTNERS_SERVICE_URL=http://alpespartners-core:5000
+    depends_on:
+      - alpespartners-core
+```
+
+## 🧪 Testing
+
+### Unit Tests
 ```bash
-# Dockerfile para BFF (agregar al proyecto)
-FROM python:3.12-slim
+# Tests de adaptadores HTTP (con mocks)
+pytest tests/bff/test_http_adapters.py
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY src/ ./src/
-EXPOSE 5001
-
-CMD ["python", "-m", "bff.main"]
+# Tests de casos de uso
+pytest tests/bff/test_use_cases.py
 ```
 
-## Características
-
-### Optimizaciones para UI Web
-- ✅ **Paginación** en todos los listados
-- ✅ **Búsqueda integrada** en múltiples servicios
-- ✅ **Agregación de datos** (Dashboard)
-- ✅ **Vistas compuestas** (Cliente con pagos/campañas)
-- ✅ **Cache en memoria** para rendimiento
-- ✅ **Validación robusta** con Marshmallow
-
-### Integraciones
-- 🔗 **Servicio Clientes** - Via adaptador directo
-- 🔗 **Servicio Pagos** - Via adaptador directo  
-- 🔗 **Servicio Campañas** - Via adaptador (mock)
-- 📊 **Logging estructurado**
-- ⚡ **Cache de datos**
-
-## Testing
-
+### Integration Tests
 ```bash
-# Unit tests (implementar)
-pytest tests/bff/
-
-# Integration tests
-pytest tests/integration/bff/
+# Tests con servicios reales ejecutándose
+pytest tests/integration/test_bff_integration.py
 ```
 
-## Monitoreo
-- Logs estructurados en `logs/bff.log`
-- Health check endpoint
-- Request/Response logging en modo debug
+## 📈 Monitoreo y Observabilidad
 
-## Próximos Pasos
-1. 🔒 Implementar autenticación JWT
-2. 📊 Métricas con Prometheus
-3. 🔄 Rate limiting
-4. 📝 OpenAPI/Swagger documentation
-5. 🧪 Suite de tests completa
+### Health Check Avanzado
+```json
+{
+  "status": "healthy",
+  "services": {
+    "cliente_service": {"status": "up", "response_time_ms": 45},
+    "pagos_service": {"status": "up", "response_time_ms": 32},
+    "campanias_service": {"status": "degraded", "response_time_ms": 1200}
+  }
+}
+```
+
+### Logs HTTP
+- Request/Response logging
+- Error tracking con stack traces
+- Performance metrics por endpoint
+- Circuit breaker status
+
+## 🚀 Próximos Pasos
+
+### Inmediatos
+1. ✅ **Completado**: Implementación HTTP sin imports directos
+2. 🔧 **Testing**: Suite completa de tests unitarios e integración
+3. 🐳 **Docker**: Dockerfile específico para BFF
+4. 📊 **Monitoring**: Métricas detalladas de HTTP requests
+
+### Mejoras
+1. 🔄 **Circuit Breaker**: Resilencia ante fallos de servicios
+2. ⚡ **Redis Cache**: Cache distribuido para múltiples instancias BFF
+3. 🔒 **JWT Auth**: Autenticación unificada
+4. 📝 **OpenAPI**: Documentación automática con Swagger

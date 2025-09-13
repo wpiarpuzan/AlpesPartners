@@ -1,10 +1,10 @@
-# Alpes Partners
+# Alpes Partners - Microservicios con BFF
 
-## Equipo
-    Willian Andres Piarpuzan
-    Karen Fernanda Tarazona
-    Juan Pablo Camacho
-    Yelsit Felipe Rivera
+## 👥 Equipo
+- Willian Andres Piarpuzan
+- Karen Fernanda Tarazona
+- Juan Pablo Camacho
+- Yelsit Felipe Rivera
 
 ## Estructura del proyecto
 
