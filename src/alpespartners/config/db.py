@@ -2,7 +2,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
 import os, importlib
 
-
 db = SQLAlchemy()
 
 MODEL_MODULES = [   
@@ -12,12 +11,7 @@ MODEL_MODULES = [
 ]
 
 def init_db(app: Flask):
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DB_URL',
-        'postgresql+psycopg2://partner:partner@postgres:5432/alpespartner'
-        #'postgresql+psycopg2://partner:partner@127.0.0.1:5432/alpespartner'
-    )
-    # Opcional: evita warnings y corta conexiones zombie
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql+psycopg2://postgres:10100101@localhost:5432/alpespartner')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     db.init_app(app)

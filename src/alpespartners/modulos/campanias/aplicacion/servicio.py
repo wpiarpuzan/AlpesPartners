@@ -26,7 +26,7 @@ class CampaniasService:
         import os
         self.db_session = db_session or db.session
         self.proy_repo = CampaniaViewRepo(self.db_session)
-        PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://broker:6650')
+        PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://host.docker.internal:6650')
         self.pulsar_client = pulsar.Client(PULSAR_BROKER_URL)
         self.eventos_producer = self.pulsar_client.create_producer(TOPIC_EVENTOS_CAMPANIAS)
 

@@ -8,7 +8,7 @@ _producer = None
 _lock = Lock()
 
 
-PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://broker:6650')
+PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://host.docker.internal:6650')
 TOPIC_EVENTOS_CAMPANIAS = os.getenv('TOPIC_EVENTOS_CAMPANIAS', 'persistent://public/default/eventos.campanias')
 
 

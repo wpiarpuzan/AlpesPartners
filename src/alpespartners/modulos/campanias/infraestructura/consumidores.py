@@ -20,13 +20,13 @@ from alpespartners.modulos.campanias.infraestructura.publisher import publish_ev
 from alpespartners.modulos.campanias.infraestructura.repos import CampaniaViewRepo
 from alpespartners.config.db import db
 
-PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://broker:6650')
+PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://host.docker.internal:6650')
 TOPIC_EVENTOS_PAGOS = os.getenv('TOPIC_EVENTOS_PAGOS', 'persistent://public/default/eventos.pagos')
 
 
 def suscribirse_a_eventos_pagos():
     import os
-    PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://broker:6650')
+    PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://host.docker.internal:6650')
     client = pulsar.Client(PULSAR_BROKER_URL)
     consumer = subscribe_with_retry(
         client,
