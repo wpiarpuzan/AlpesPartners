@@ -1,3 +1,19 @@
+## 🗄️ Estrategia de Persistencia y CRUD
+
+### Base de Datos Centralizada
+En este proyecto se utiliza un **estilo centralizado de base de datos** (PostgreSQL) para todos los módulos. Esta decisión facilita la prueba y evaluación de los escenarios escogidos, ya que permite una gestión y monitoreo más simple de los datos, así como una depuración más directa durante el desarrollo y las pruebas.
+
+### Enfoque CRUD
+Actualmente, el sistema implementa operaciones **CRUD** (Create, Read, Update, Delete) tradicionales sobre las entidades principales. Aunque la arquitectura soporta Event Sourcing, para este contexto de pruebas se opta por CRUD por las siguientes razones:
+- **Simplicidad**: CRUD es más fácil de implementar y entender para pruebas rápidas.
+- **Facilidad de validación**: Permite verificar el estado actual de los datos sin reconstrucción desde eventos.
+- **Menor complejidad**: Reduce la curva de aprendizaje y el tiempo de setup para el equipo y los evaluadores.
+- **Compatibilidad**: Facilita la integración con herramientas de testing y reporting convencionales.
+
+> **Nota:** Event Sourcing es ideal para escenarios de auditabilidad y reconstrucción histórica, pero en pruebas y validaciones funcionales CRUD permite iterar y validar más rápido.
+
+### Escalabilidad: Escenario Probado
+Para pruebas de escalabilidad, se está evaluando el **escenario número 2**, que implica la centralización de la base de datos y la optimización de los accesos concurrentes. Este enfoque permite observar el comportamiento del sistema bajo carga y validar la robustez de la arquitectura centralizada antes de considerar una migración a event sourcing distribuido.
 
 ## 👥 Equipo
 - Willian Andres Piarpuzan
