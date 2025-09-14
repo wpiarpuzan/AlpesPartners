@@ -20,7 +20,15 @@ def procesar_payout_asincrono():
         from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando
         comando = ProcesarPago(
             partner_id=payout_dto_in.partner_id,
-            cycle_id=payout_dto_in.cycle_id
+            cycle_id=payout_dto_in.cycle_id,
+            total_amount=payout_dto_in.monto_total_valor,
+            currency=payout_dto_in.monto_total_moneda,
+            confirmation_id=payout_dto_in.confirmation_id,
+            failure_reason=payout_dto_in.failure_reason,
+            payment_method_type=payout_dto_in.payment_method_type,
+            payment_method_mask=payout_dto_in.payment_method_mask,
+            processed_at=str(payout_dto_in.processed_at) if payout_dto_in.processed_at else None,
+            completed_at=str(payout_dto_in.completed_at) if payout_dto_in.completed_at else None
         )
         resultado = ejecutar_commando(comando)
         payout_id = resultado if resultado else None

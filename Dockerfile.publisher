@@ -1,0 +1,18 @@
+# Dockerfile para probar el publisher en un entorno limpio
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+
+# Copiar el código fuente
+COPY src/alpespartners/modulos/pagos/infraestructura/saga_publisher.py ./
+COPY src/alpespartners/modulos/pagos/dominio/ ./modulos/pagos/dominio/
+COPY src/alpespartners/modulos/pagos/infraestructura/ ./modulos/pagos/infraestructura/
+COPY src/alpespartners/config/db.py ./config/db.py
+
+# Instalar pulsar-client y dependencias
+RUN pip install --no-cache-dir pulsar-client
+
+CMD ["python", "saga_publisher.py"]

@@ -5,9 +5,8 @@ networks:
     driver: bridge
 
 services:
-  # Start zookeeper
   zookeeper:
-    image: apachepulsar/pulsar:latest
+    image: apachepulsar/pulsar:2.10.2
     profiles: ["pulsar"]
     container_name: zookeeper
     restart: on-failure
@@ -18,20 +17,15 @@ services:
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
     command: >
-      bash -c "bin/apply-config-from-env.py conf/zookeeper.conf && \
-             bin/generate-zookeeper-config.sh conf/zookeeper.conf && \
-             exec bin/pulsar zookeeper"
+      bash -c "bin/apply-config-from-env.py conf/zookeeper.conf && bin/generate-zookeeper-config.sh conf/zookeeper.conf && exec bin/pulsar zookeeper"
     healthcheck:
       test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
       interval: 10s
       timeout: 5s
       retries: 30
 
-  # Init cluster metadata
   pulsar-init:
-    container_name: pulsar-init
-    hostname: pulsar-init
-    image: apachepulsar/pulsar:latest
+    image: apachepulsar/pulsar:2.10.2
     profiles: ["pulsar"]
     networks:
       - pulsar
@@ -40,9 +34,8 @@ services:
       zookeeper:
         condition: service_healthy
 
-  # Start bookie
   bookie:
-    image: apachepulsar/pulsar:latest
+    image: apachepulsar/pulsar:2.10.2
     profiles: ["pulsar"]
     container_name: bookie
     restart: on-failure
@@ -57,15 +50,12 @@ services:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
-    # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
     volumes:
       - ./data/bookkeeper:/pulsar/data/bookkeeper
-    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf
-      && exec bin/pulsar bookie"
+    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
 
-  # Start broker
   broker:
-    image: apachepulsar/pulsar:latest
+    image: apachepulsar/pulsar:2.10.2
     profiles: ["pulsar"]
     container_name: broker
     hostname: broker
@@ -79,9 +69,8 @@ services:
       - managedLedgerDefaultEnsembleSize=1
       - managedLedgerDefaultWriteQuorum=1
       - managedLedgerDefaultAckQuorum=1
-      - advertisedAddress=broker
-      # Si se ejecuta desde IDE, usar esta línea:
-      - advertisedListeners=external:pulsar://broker:6650
+      - advertisedAddress=localhost
+      - advertisedListeners=external:pulsar://localhost:6650
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -90,8 +79,7 @@ services:
     ports:
       - "6650:6650"
       - "8080:8080"
-    command: bash -c "bin/apply-config-from-env.py conf/broker.conf
-      &&  exec bin/pulsar broker"
+    command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/metrics"]
       interval: 10s
