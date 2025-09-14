@@ -1,4 +1,4 @@
-## 🗄️ Estrategia de Persistencia y CRUD
+## Estrategia de Persistencia y CRUD
 
 ### Base de Datos Centralizada
 En este proyecto se utiliza un **estilo centralizado de base de datos** (PostgreSQL) para todos los módulos. Esta decisión facilita la prueba y evaluación de los escenarios escogidos, ya que permite una gestión y monitoreo más simple de los datos, así como una depuración más directa durante el desarrollo y las pruebas.
@@ -15,12 +15,20 @@ Actualmente, el sistema implementa operaciones **CRUD** (Create, Read, Update, D
 ### Escalabilidad: Escenario Probado
 Para pruebas de escalabilidad, se está evaluando el **escenario número 2**, que implica la centralización de la base de datos y la optimización de los accesos concurrentes. Este enfoque permite observar el comportamiento del sistema bajo carga y validar la robustez de la arquitectura centralizada antes de considerar una migración a event sourcing distribuido.
 
-## 👥 Equipo
+### Disponibilidad: Escenario Probado
+Para pruebas de disponibilidad, se está evaluando el **escenario número 8**, que contempla la degradación del broker cuando una partición del tópico events queda inactiva. Este enfoque permite validar que los mensajes críticos (Campañas, Pagos) se enruten a particiones sanas. Con ello se garantiza que el sistema mantiene la consistencia de eventos bajo fallas, evitando pérdida de datos y asegurando la continuidad operativa frente a caídas parciales del broker.
+
+## Equipo
 - Willian Andres Piarpuzan
 - Karen Fernanda Tarazona
 - Juan Pablo Camacho
 - Yelsit Felipe Rivera
 
+## Distribución de trabajo del equipo
+- Willian Andres Piarpuzan : Módulo de clientes
+- Karen Fernanda Tarazona :  BFF
+- Juan Pablo Camacho : Módulo de Campañas
+- Yelsit Felipe Rivera : Módulo de Pagos
 
 ## Descripción General
 
