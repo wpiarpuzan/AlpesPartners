@@ -10,7 +10,7 @@ try:
 except Exception:
     pulsar = None
 
-PULSAR_ADDR = os.getenv("PULSAR_ADDRESS", "host.docker.internal")
+PULSAR_ADDR = os.getenv("PULSAR_ADDRESS", "broker")
 PAGOS_TOPIC = os.getenv("PAGOS_TOPIC", "persistent://public/default/pagos")
 
 def _parse_event(data: bytes) -> dict:

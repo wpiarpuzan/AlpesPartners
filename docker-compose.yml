@@ -209,8 +209,8 @@ services:
       - ALPESPARTNERS_ADDRESS=alpespartner
       - PULSAR_ADDRESS=broker
       - BROKER_HOST=broker
-      - DB_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
-      - DATABASE_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
+      - DB_URL=postgresql+psycopg2://admin:admin10100101.@postgres:5432/postgres
+      - DATABASE_URL=postgresql+psycopg2://admin:admin10100101.@postgres:5432/postgres
       - PULSAR_BROKER_URL=pulsar://broker:6650
       - TOPIC_COMANDOS_CAMPANIAS=persistent://public/default/comandos.campanias
       - TOPIC_EVENTOS_CAMPANIAS=persistent://public/default/eventos.campanias
