@@ -25,6 +25,14 @@ class ProcesarPago(Comando):
     """
     partner_id: str
     cycle_id: str
+    total_amount: float = None
+    currency: str = None
+    payment_method_type: str = None
+    payment_method_mask: str = None
+    confirmation_id: str = None
+    failure_reason: str = None
+    processed_at: str = None
+    completed_at: str = None
 
 # ===================================
 # Handlers
@@ -43,10 +51,10 @@ class ProcesarPagoHandler(ComandoHandler):
             payment_method_mask=payout_dto.payment_method_mask
         )
         # Asignar campos adicionales del DTO al objeto de dominio
-        if hasattr(payout, 'monto_total') and payout_dto.monto_total_valor:
-            payout.monto_total.valor = payout_dto.monto_total_valor
-        if hasattr(payout, 'monto_total') and payout_dto.monto_total_moneda:
-            payout.monto_total.moneda = payout_dto.monto_total_moneda
+        if hasattr(payout, 'monto_total') and payout_dto.total_amount:
+            payout.monto_total.valor = payout_dto.total_amount
+        if hasattr(payout, 'monto_total') and payout_dto.currency:
+            payout.monto_total.moneda = payout_dto.currency
         if hasattr(payout, 'confirmation_id'):
             payout.confirmation_id = payout_dto.confirmation_id
         if hasattr(payout, 'failure_reason'):

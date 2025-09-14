@@ -15,10 +15,19 @@ mapeador_payout = MapeadorPayoutDTOJson()
 def procesar_payout_asincrono():
     try:
         payout_dict = request.json
-        payout_dto_in = mapeador_payout.externo_a_dto(payout_dict)
-        from alpespartners.modulos.pagos.aplicacion.comandos.registrar_pago import ProcesarPagoHandler
-        handler = ProcesarPagoHandler()
-        payout = handler.handle(payout_dto_in)
+        comando = ProcesarPago(
+            partner_id=payout_dict.get('partner_id'),
+            cycle_id=payout_dict.get('cycle_id'),
+            total_amount=payout_dict.get('total_amount'),
+            currency=payout_dict.get('currency'),
+            payment_method_type=payout_dict.get('payment_method_type'),
+            payment_method_mask=payout_dict.get('payment_method_mask'),
+            confirmation_id=payout_dict.get('confirmation_id'),
+            failure_reason=payout_dict.get('failure_reason'),
+            processed_at=payout_dict.get('processed_at'),
+            completed_at=payout_dict.get('completed_at')
+        )
+        payout = ejecutar_commando(comando)
         payout_id = payout.id if payout else None
         return Response(json.dumps({'id': payout_id}), status=202, mimetype='application/json')
     except ExcepcionDominio as e:
