@@ -257,6 +257,7 @@ flask --app alpespartners/api --debug run --port 5000
 cd src
 export ALPESPARTNERS_SERVICE_URL=http://localhost:5000
 python -m bff.main
+pip install flask-cors
 ```
 
 ### Con Flask directamente
