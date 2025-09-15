@@ -18,6 +18,9 @@ Para pruebas de escalabilidad, se está evaluando el **escenario número 2**, qu
 ### Disponibilidad: Escenario Probado
 Para pruebas de disponibilidad, se está evaluando el **escenario número 8**, que contempla la degradación del broker cuando una partición del tópico events queda inactiva. Este enfoque permite validar que los mensajes críticos (Campañas, Pagos) se enruten a particiones sanas. Con ello se garantiza que el sistema mantiene la consistencia de eventos bajo fallas, evitando pérdida de datos y asegurando la continuidad operativa frente a caídas parciales del broker.
 
+### Modificabilidad: Escenario Probado
+Para pruebas la modificabilidad, se está evaluando el **escenario número 4**, que consiste en sustituir el adaptador del PSP(Payment Service Provide) al migrar de la API v2 a v3. Con puertos y adaptadores Outbox/CDC, se garantiza la integración sin cambios en entidades ni contratos de eventos, validando la adaptabilidad y la autonomía de equipos bajo principios de DDD.
+
 ## Equipo
 - Willian Andres Piarpuzan
 - Karen Fernanda Tarazona
