@@ -14,6 +14,12 @@ class PayoutRepositorioSQLAlchemy(IPayoutRepositorio):
         evt = OutboxEvent(event_type=event_type, payload=payload)
         self._session.add(evt)
         self._session.commit()
+        # Debug trace so demos show when an outbox row was created
+        try:
+            print(f"[OUTBOX][INSERT] id={evt.id} event_type={event_type}")
+        except Exception:
+            # best-effort logging, don't fail the flow
+            print(f"[OUTBOX][INSERT] event_type={event_type} (id unknown)")
 
     def is_event_processed(self, aggregate_id, event_type, event_id):
         return self._session.query(ProcessedEvent).filter_by(

@@ -4,6 +4,7 @@ import time
 import os
 from sqlalchemy import create_engine, text
 from alpespartners.modulos.pagos.infraestructura.publisher import publish_event
+import logging
 
 
 def outbox_poller(interval_ms=1000):
@@ -24,9 +25,12 @@ def outbox_poller(interval_ms=1000):
                         "WHERE status = 'PENDING' ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 10"
                     )
                     rows = conn.execute(sel).fetchall()
+                    if rows:
+                        print(f"[OUTBOX][POLL] Found {len(rows)} pending rows")
                     for row in rows:
                         id_, event_type, payload = row
                         try:
+                            print(f"[OUTBOX][PUBLISH] id={id_} event_type={event_type}")
                             publish_event(event_type, payload)
                             upd = text("UPDATE outbox SET status='SENT', published_at = now() WHERE id = :id")
                             conn.execute(upd, {"id": id_})
