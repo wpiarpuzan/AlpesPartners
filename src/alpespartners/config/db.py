@@ -1,9 +1,27 @@
+
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
 import os, importlib
 
-
 db = SQLAlchemy()
+
+class ProcessedEvent(db.Model):
+    __tablename__ = "processed_events"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    aggregate_id = db.Column(db.String, nullable=False)
+    event_type = db.Column(db.String, nullable=False)
+    event_id = db.Column(db.String, nullable=False)
+    processed_at = db.Column(db.DateTime, server_default=db.func.now())
+    __table_args__ = (db.UniqueConstraint('aggregate_id', 'event_type', 'event_id', name='_uq_processed_event'),)
+
+class OutboxEvent(db.Model):
+    __tablename__ = "outbox"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    event_type = db.Column(db.String, nullable=False)
+    payload = db.Column(db.JSON, nullable=False)
+    status = db.Column(db.String, default='PENDING')
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    published_at = db.Column(db.DateTime)
 
 MODEL_MODULES = [   
     "alpespartners.modulos.cliente.infraestructura.dto",  # idem

@@ -1,67 +1,138 @@
-networks:
-  pulsar:
-    driver: bridge
-  sidecar:
-    driver: bridge
+name: alpespartners
 
 services:
+  # ------------------------
+  # Base de datos PostgreSQL
+  # ------------------------
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: on-failure
+    profiles: ['alpespartner', 'bd', 'pulsar']   
+    ports:
+      - '54320:5432'
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin10100101.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./pulsar-manager/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - sidecar
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ------------------------
+  # ZooKeeper para Pulsar
+  #  image: apachepulsar/pulsar:2.10.2
+  # ------------------------
   zookeeper:
-    image: apachepulsar/pulsar:2.10.2
-    profiles: ["pulsar"]
+    image: apachepulsar/pulsar:latest
     container_name: zookeeper
     restart: on-failure
-    networks:
-      - pulsar
-    volumes:
-      - ./data/zookeeper:/pulsar/data/zookeeper
+    profiles: ['pulsar']
+    command:
+      - bash
+      - -c
+      - |
+        bin/apply-config-from-env.py conf/zookeeper.conf && \
+        bin/generate-zookeeper-config.sh conf/zookeeper.conf && \
+        exec bin/pulsar zookeeper
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
-    command: >
-      bash -c "bin/apply-config-from-env.py conf/zookeeper.conf && bin/generate-zookeeper-config.sh conf/zookeeper.conf && exec bin/pulsar zookeeper"
+      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
+    volumes:
+      - zookeeper_data:/pulsar/data
+    networks:
+      - pulsar
     healthcheck:
-      test: ["CMD", "bin/pulsar-zookeeper-ruok.sh"]
+      test: ['CMD', 'bin/pulsar-zookeeper-ruok.sh']
       interval: 10s
       timeout: 5s
       retries: 30
+      start_period: 30s
 
+  # ------------------------
+  # Inicialización de Pulsar
+  # ------------------------
   pulsar-init:
-    image: apachepulsar/pulsar:2.10.2
-    profiles: ["pulsar"]
-    networks:
-      - pulsar
-    command: bin/pulsar initialize-cluster-metadata --cluster cluster-a --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650
+    image: apachepulsar/pulsar:latest
+    container_name: pulsar-init
+    hostname: pulsar-init
+    profiles: ['pulsar']
+    command:
+      - bash
+      - -c
+      - |
+        bin/pulsar initialize-cluster-metadata \
+        --cluster cluster-a \
+        --zookeeper zookeeper:2181 \
+        --configuration-store zookeeper:2181 \
+        --web-service-url http://broker:8080 \
+        --broker-service-url pulsar://broker:6650
     depends_on:
       zookeeper:
         condition: service_healthy
-
-  bookie:
-    image: apachepulsar/pulsar:2.10.2
-    profiles: ["pulsar"]
-    container_name: bookie
-    restart: on-failure
     networks:
       - pulsar
-    environment:
-      - clusterName=cluster-a
-      - zkServers=zookeeper:2181
-      - metadataServiceUri=metadata-store:zk:zookeeper:2181
+
+  # ------------------------
+  # BookKeeper (almacenamiento de logs)
+  # ------------------------
+  bookie:
+    image: apachepulsar/pulsar:latest
+    container_name: bookie
+    restart: on-failure
+    profiles: ['pulsar']
+    command:
+      - bash
+      - -c
+      - |
+        bin/apply-config-from-env.py conf/bookkeeper.conf && \
+        exec bin/pulsar bookie
     depends_on:
       zookeeper:
         condition: service_healthy
       pulsar-init:
         condition: service_completed_successfully
+    environment:
+      - clusterName=cluster-a
+      - zkServers=zookeeper:2181
+      - metadataServiceUri=metadata-store:zk:zookeeper:2181
+      - advertisedAddress=bookie
+      - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
     volumes:
-      - ./data/bookkeeper:/pulsar/data/bookkeeper
-    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
+      - bookkeeper_data:/pulsar/data
+    networks:
+      - pulsar
 
+  # ------------------------
+  # Pulsar Broker
+  # ------------------------
   broker:
-    image: apachepulsar/pulsar:2.10.2
-    profiles: ["pulsar"]
+    image: apachepulsar/pulsar:latest
     container_name: broker
     hostname: broker
     restart: on-failure
-    networks:
-      - pulsar
+    profiles: ['pulsar']
+    command:
+      - bash
+      - -c
+      - |
+        bin/apply-config-from-env.py conf/broker.conf && \
+        exec bin/pulsar broker
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+      bookie:
+        condition: service_started
+    ports:
+      - '6650:6650'
+      - '8080:8080'
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
       - zookeeperServers=zookeeper:2181
@@ -69,81 +140,97 @@ services:
       - managedLedgerDefaultEnsembleSize=1
       - managedLedgerDefaultWriteQuorum=1
       - managedLedgerDefaultAckQuorum=1
-      - advertisedAddress=localhost
-      - advertisedListeners=external:pulsar://localhost:6650
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-      bookie:
-        condition: service_started
-    ports:
-      - "6650:6650"
-      - "8080:8080"
-    command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+      - advertisedAddress=broker
+      - advertisedListeners=external:pulsar://broker:6650
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    networks:
+      - pulsar
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/metrics"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/metrics']
       interval: 10s
       timeout: 5s
       retries: 30
+      start_period: 40s
 
-  # Servicios de Alpes Partners
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: partner
-      POSTGRES_PASSWORD: partner
-      POSTGRES_DB: alpespartner
+  # ------------------------
+  # Pulsar Manager
+  # ------------------------
+  pulsar-manager:
+    image: apachepulsar/pulsar-manager:latest
+    container_name: pulsar-manager
+    restart: on-failure
+    profiles: ['pulsar']
+    depends_on:
+      postgres:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
     ports:
-      - "5432:5432"
+      - '9527:9527'
+      - '7750:7750'
+    environment:
+      - SPRING_CONFIGURATION_FILE=/pulsar-manager/pulsar-manager/application.properties
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    profiles: ["alpespartner", "bd"]
+      - ./pulsar-manager/resources/application.properties:/pulsar-manager/pulsar-manager/application.properties
     networks:
       - sidecar
+      - pulsar
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U partner"]
-      interval: 5s
+      test: ['CMD', 'curl', '-f', 'http://localhost:7750/actuator/health']
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
+      start_period: 40s
 
+  # ------------------------
+  # API AlpesPartner
+  # ------------------------
   alpespartner:
     container_name: alpespartner
-    hostname: alpespartner
     build:
       context: .
       dockerfile: alpespartners.Dockerfile
-     #image: alpespartners/flask:local
-    profiles: ["alpespartner", "monolito"]
-    networks: [sidecar, pulsar]
+    restart: on-failure
+    profiles: ['alpespartner', 'monolito']
+    entrypoint: ["/bin/bash", "/src/entrypoint.sh"]
     labels:
-      SidecarDiscover: "false"
+      SidecarDiscover: 'false'
     depends_on:
       broker:
         condition: service_healthy
       postgres:
         condition: service_healthy
-    restart: on-failure
-    environment:
-    - ALPESPARTNERS_ADDRESS=alpespartner
-    - PULSAR_ADDRESS=broker
-    - BROKER_HOST=broker
-    - DB_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
-    - DATABASE_URL=postgresql+psycopg2://partner:partner@postgres:5432/alpespartner
-    - PULSAR_BROKER_URL=pulsar://broker:6650
-    - TOPIC_COMANDOS_CAMPANIAS=persistent://public/default/comandos.campanias
-    - TOPIC_EVENTOS_CAMPANIAS=persistent://public/default/eventos.campanias
-    - PYTHONPATH=/src        # 👈 clave: /src, no "/"
-    - PYTHONDONTWRITEBYTECODE=1
-    - PYTHONUNBUFFERED=1
     ports:
-      - "5000:5000"
-    command: flask --app alpespartners.api:create_app run --host=0.0.0.0 --no-reload
-    # Si prefieres Gunicorn (más estable), cambia 'command' por:
-    # command: >
-    #   gunicorn "alpespartners.api:create_app()"
-    #   -b 0.0.0.0:5000 --workers 2 --threads 4 --timeout 0 --log-level info
+      - '5000:5000'
+    environment:
+      - ALPESPARTNERS_ADDRESS=alpespartner
+      - PULSAR_ADDRESS=broker
+      - BROKER_HOST=broker
+      - DB_URL=postgresql+psycopg2://admin:admin10100101.@postgres:5432/postgres
+      - DATABASE_URL=postgresql+psycopg2://admin:admin10100101.@postgres:5432/postgres
+      - PULSAR_BROKER_URL=pulsar://broker:6650
+      - TOPIC_COMANDOS_CAMPANIAS=persistent://public/default/comandos.campanias
+      - TOPIC_EVENTOS_CAMPANIAS=persistent://public/default/eventos.campanias
+      - PYTHONPATH=/src
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    networks:
+      - sidecar
+      - pulsar
 
-
-
+# ------------------------
+# Volúmenes
+# ------------------------
 volumes:
-  pgdata:
+  postgres_data:
+  zookeeper_data:
+  bookkeeper_data:
+
+# ------------------------
+# Redes
+# ------------------------
+networks:
+  pulsar:
+    driver: bridge
+  sidecar:
+    driver: bridge

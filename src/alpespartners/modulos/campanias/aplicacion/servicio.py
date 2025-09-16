@@ -58,7 +58,13 @@ class CampaniasService:
             while True:
                 msg = consumer.receive()
                 try:
-                    payload = json.loads(msg.data())
+                    raw = msg.data()
+                    try:
+                        payload = json.loads(raw)
+                    except Exception as e:
+                        logging.error(f"[CAMPANIAS][APLICACION] Error parseando payload. Raw: {raw}. Error: {e}")
+                        consumer.acknowledge(msg)
+                        continue
                     tipo = payload.get("type")
                     data = payload.get("data")
                     idCampania = data.get("idCampania")

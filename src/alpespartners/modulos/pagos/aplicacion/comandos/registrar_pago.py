@@ -37,9 +37,9 @@ class ProcesarPago(Comando):
 class ProcesarPagoHandler(ComandoHandler):
     def handle(self, comando):
         # Solo publicar el comando en Pulsar
-        import pulsar, json, logging
+        import pulsar, json, logging, os
         logging.basicConfig(level=logging.INFO, force=True)
-        PULSAR_BROKER_URL = 'pulsar://localhost:6650'
+        PULSAR_BROKER_URL = os.environ['PULSAR_BROKER_URL']
         TOPIC_COMANDOS_PAGOS = 'persistent://public/default/comandos-pagos'
         client = pulsar.Client(PULSAR_BROKER_URL)
         producer = client.create_producer(TOPIC_COMANDOS_PAGOS)

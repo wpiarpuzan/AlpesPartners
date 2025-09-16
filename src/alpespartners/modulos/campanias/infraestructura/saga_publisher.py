@@ -1,9 +1,10 @@
 import pulsar
 import json
 import logging
+import os
 from pulsar import ConsumerType
 
-PULSAR_BROKER_URL = 'pulsar://broker:6650'
+PULSAR_BROKER_URL = os.environ['PULSAR_BROKER_URL']
 TOPIC_COMANDOS_CAMPANIAS = 'persistent://public/default/comandos-campanias'
 TOPIC_EVENTOS_CAMPANIAS = 'persistent://public/default/eventos-campanias'
 
@@ -17,7 +18,13 @@ class CampaniasSagaPublisher:
         logging.info('[CAMPANIAS] Saga publisher iniciado')
         while True:
             msg = self.consumer.receive()
-            comando = json.loads(msg.data())
+            raw = msg.data()
+            try:
+                comando = json.loads(raw)
+            except Exception as e:
+                logging.error(f"[CAMPANIAS][SAGA_PUBLISHER] Error parseando comando. Raw: {raw}. Error: {e}")
+                self.consumer.acknowledge(msg)
+                continue
             tipo = comando.get('type')
             data = comando.get('data', {})
             if tipo == 'CampaniaCreada':

@@ -7,3 +7,5 @@ TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos-pagos'
 TOPIC_COMANDOS_PAGOS = 'persistent://public/default/comandos-pagos'
 TOPIC_EVENTOS_CLIENTES = 'persistent://public/default/eventos-clientes'
 TOPIC_COMANDOS_CLIENTES = 'persistent://public/default/comandos-clientes'
+# JSON-only mirror topic for pagos events (to avoid Avro/JSON mixing)
+TOPIC_EVENTOS_PAGOS_JSON = 'persistent://public/default/eventos-pagos-json'

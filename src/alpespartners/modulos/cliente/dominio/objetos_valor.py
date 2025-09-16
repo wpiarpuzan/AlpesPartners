@@ -21,7 +21,6 @@ class Email(ObjetoValor):
 @dataclass(frozen=True)
 class Cedula(ObjetoValor):
     numero: int
-    ciudad: Ciudad
 
 @dataclass(frozen=True)
 class Rut(ObjetoValor):

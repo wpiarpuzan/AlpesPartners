@@ -1,9 +1,10 @@
 import pulsar
 import json
 import logging
+import os
 from pulsar import ConsumerType
 
-PULSAR_BROKER_URL = 'pulsar://broker:6650'
+PULSAR_BROKER_URL = os.environ['PULSAR_BROKER_URL']
 TOPIC_EVENTOS_CAMPANIAS = 'persistent://public/default/eventos-campanias'
 
 class CampaniaSagaConsumer:
@@ -15,7 +16,13 @@ class CampaniaSagaConsumer:
         logging.info('[CAMPANIAS] Saga consumer iniciado')
         while True:
             msg = self.consumer.receive()
-            evento = json.loads(msg.data())
+            raw = msg.data()
+            try:
+                evento = json.loads(raw)
+            except Exception as e:
+                logging.error(f"[CAMPANIAS][SAGA] Error parseando evento. Raw: {raw}. Error: {e}")
+                self.consumer.acknowledge(msg)
+                continue
             tipo = evento.get('type')
             data = evento.get('data', {})
             if tipo == 'CampaniaAprobada':

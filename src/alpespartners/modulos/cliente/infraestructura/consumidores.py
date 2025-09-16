@@ -30,20 +30,61 @@ def suscribirse_a_pagos():
         print("[cliente] Pulsar no disponible; no se puede consumir eventos.")
         return
 
-    client = pulsar.Client(f"pulsar://{PULSAR_ADDR}:6650")
-    consumer = client.subscribe('eventos-pagos', subscription_name='cliente-actualizador')
-    print(f"[cliente] Subscrito a {PAGOS_TOPIC}")
+    import os
+    PULSAR_BROKER_URL = os.environ['PULSAR_BROKER_URL']
+    client = pulsar.Client(PULSAR_BROKER_URL)
+    # Subscribe to the JSON-only topic for client updater to avoid Avro/JSON mixing
+    # Use Shared consumer type so multiple consumers can co-exist
+    consumer = client.subscribe('persistent://public/default/eventos-pagos-json', subscription_name='cliente-actualizador', consumer_type=pulsar.ConsumerType.Shared)
+    print(f"[cliente] Subscrito a eventos-pagos-json (JSON)")
 
     while True:
         msg = consumer.receive()
-        evento = json.loads(msg.data())
+        raw = msg.data()
+        try:
+            evento = _parse_event(raw)
+        except Exception as e:
+            print(f"[cliente] Error parseando evento. Raw: {raw}. Error: {e}")
+            consumer.acknowledge(msg)
+            continue
         tipo = evento.get('type')
         data = evento.get('data', {})
         if tipo == 'ActualizarCliente':
             accion = data.get('accion')
             id_cliente = data.get('idCliente')
+            from alpespartners.api import create_app
             from alpespartners.modulos.cliente.infraestructura.repositorios import ClienteRepositorioSQLAlchemy
-            repo = ClienteRepositorioSQLAlchemy()
+            app = None
+            try:
+                app = create_app({'TESTING': True})
+            except Exception:
+                app = None
+
+            # Use a context manager to ensure proper push/pop of the Flask app context
+            if app is not None:
+                try:
+                    with app.app_context():
+                        repo = ClienteRepositorioSQLAlchemy()
+                        if accion == 'APROBAR_CAMPANIA':
+                            # Aquí podrías sumar una campaña aprobada, actualizar estado, etc.
+                            # Ejemplo: repo.actualizar_estado(id_cliente, 'APROBADA')
+                            pass
+                        elif accion == 'CANCELAR_CAMPANIA':
+                            # Aquí podrías sumar una campaña cancelada, actualizar estado, etc.
+                            # Ejemplo: repo.actualizar_estado(id_cliente, 'CANCELADA')
+                            pass
+                except Exception as e:
+                    print(f"[cliente] Error al ejecutar con app_context: {e}")
+            else:
+                # Fall back to creating repo without app context (less safe but won't crash)
+                try:
+                    repo = ClienteRepositorioSQLAlchemy()
+                    if accion == 'APROBAR_CAMPANIA':
+                        pass
+                    elif accion == 'CANCELAR_CAMPANIA':
+                        pass
+                except Exception as e:
+                    print(f"[cliente] Error al ejecutar repositorio sin app_context: {e}")
             if accion == 'APROBAR_CAMPANIA':
                 # Aquí podrías sumar una campaña aprobada, actualizar estado, etc.
                 # Ejemplo: repo.actualizar_estado(id_cliente, 'APROBADA')

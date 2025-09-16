@@ -24,11 +24,22 @@ def comenzar_consumidor():
     import alpespartners.modulos.pagos.infraestructura.consumidores as pagos
     import alpespartners.modulos.campanias.infraestructura.consumidores as campanias
 
-    threading.Thread(target=cliente.suscribirse_a_pagos).start()
-    threading.Thread(target=pagos.suscribirse_a_eventos).start()
-    threading.Thread(target=cliente.suscribirse_a_comandos).start()
-    threading.Thread(target=pagos.suscribirse_a_comandos).start()
-    threading.Thread(target=campanias.suscribirse_a_eventos_pagos, daemon=True).start()
+    def run_with_log(name, fn):
+        def wrapper():
+            logging.info(f"[CONSUMER-START] Lanzando hilo: {name}")
+            try:
+                fn()
+            except Exception as e:
+                logging.error(f"[CONSUMER-FAIL] Hilo {name} terminó con error: {e}")
+                logging.error(traceback.format_exc())
+        t = threading.Thread(target=wrapper, daemon=True)
+        t.start()
+
+    run_with_log('cliente.suscribirse_a_pagos', cliente.suscribirse_a_pagos)
+    run_with_log('pagos.suscribirse_a_eventos', pagos.suscribirse_a_eventos)
+    run_with_log('cliente.suscribirse_a_comandos', cliente.suscribirse_a_comandos)
+    run_with_log('pagos.suscribirse_a_comandos', pagos.suscribirse_a_comandos)
+    run_with_log('campanias.suscribirse_a_eventos_pagos', campanias.suscribirse_a_eventos_pagos)
 
 def create_app(configuracion: dict = {}):
     app = Flask(__name__, instance_relative_config=True)

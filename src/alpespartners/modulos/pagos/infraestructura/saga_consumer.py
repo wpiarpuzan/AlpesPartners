@@ -3,19 +3,27 @@ import json
 import logging
 from pulsar import ConsumerType
 
-PULSAR_BROKER_URL = 'pulsar://broker:6650'
-TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos-pagos'
+import os
+# Consume the JSON-only mirror topic to avoid Avro/JSON mixing
+TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos-pagos-json'
 
 class PagosSagaConsumer:
     def __init__(self):
-        self.client = pulsar.Client(PULSAR_BROKER_URL)
+        pulsar_broker_url = os.environ['PULSAR_BROKER_URL']
+        self.client = pulsar.Client(pulsar_broker_url)
         self.consumer = self.client.subscribe(TOPIC_EVENTOS_PAGOS, subscription_name='pagos-saga', consumer_type=ConsumerType.Shared)
 
     def run(self):
         logging.info('[PAGOS] Saga consumer iniciado')
         while True:
             msg = self.consumer.receive()
-            evento = json.loads(msg.data())
+            raw = msg.data()
+            try:
+                evento = json.loads(raw)
+            except Exception as e:
+                logging.error(f"[PAGOS] Error decodificando evento saga. Raw: {raw}. Error: {e}")
+                self.consumer.acknowledge(msg)
+                continue
             tipo = evento.get('type')
             data = evento.get('data', {})
             if tipo == 'PagoExitoso':

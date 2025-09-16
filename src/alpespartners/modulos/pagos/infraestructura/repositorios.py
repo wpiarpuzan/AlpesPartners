@@ -1,3 +1,4 @@
+from alpespartners.config.db import ProcessedEvent
 from typing import Optional
 from alpespartners.config.db import db
 from alpespartners.modulos.pagos.dominio.entidades import Transaction
@@ -8,6 +9,25 @@ from .dto import PayoutModel, TransactionModel, PayoutCycleModel
 from .mapeadores import MapeadorPayout, MapeadorTransaction
 
 class PayoutRepositorioSQLAlchemy(IPayoutRepositorio):
+    def guardar_evento_outbox(self, event_type, payload):
+        from alpespartners.config.db import OutboxEvent
+        evt = OutboxEvent(event_type=event_type, payload=payload)
+        self._session.add(evt)
+        self._session.commit()
+
+    def is_event_processed(self, aggregate_id, event_type, event_id):
+        return self._session.query(ProcessedEvent).filter_by(
+            aggregate_id=aggregate_id, event_type=event_type, event_id=event_id
+        ).first() is not None
+
+    def mark_event_processed(self, aggregate_id, event_type, event_id):
+        pe = ProcessedEvent(
+            aggregate_id=aggregate_id,
+            event_type=event_type,
+            event_id=event_id
+        )
+        self._session.add(pe)
+        self._session.commit()
 
     def __init__(self, session=None):
         self._session = session or db.session

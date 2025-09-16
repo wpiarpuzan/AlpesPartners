@@ -1,3 +1,22 @@
+from alpespartners.config.db import ProcessedEvent
+
+class CampaniasEventRepository:
+    def __init__(self, session):
+        self._session = session
+
+    def is_event_processed(self, aggregate_id, event_type, event_id):
+        return self._session.query(ProcessedEvent).filter_by(
+            aggregate_id=aggregate_id, event_type=event_type, event_id=event_id
+        ).first() is not None
+
+    def mark_event_processed(self, aggregate_id, event_type, event_id):
+        pe = ProcessedEvent(
+            aggregate_id=aggregate_id,
+            event_type=event_type,
+            event_id=event_id
+        )
+        self._session.add(pe)
+        self._session.commit()
 from sqlalchemy import Column, String, DateTime, Integer, JSON, func, UniqueConstraint
 from alpespartners.config.db import db
 from sqlalchemy.dialects.postgresql import JSONB

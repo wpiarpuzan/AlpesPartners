@@ -16,8 +16,6 @@ def procesar_payout_asincrono():
     try:
         payout_dict = request.json
         payout_dto_in = mapeador_payout.externo_a_dto(payout_dict)
-        from alpespartners.modulos.pagos.aplicacion.comandos.registrar_pago import ProcesarPago
-        from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando
         comando = ProcesarPago(
             partner_id=payout_dto_in.partner_id,
             cycle_id=payout_dto_in.cycle_id,

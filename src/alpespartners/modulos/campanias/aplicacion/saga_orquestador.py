@@ -8,7 +8,7 @@ from threading import Thread
 PULSAR_BROKER_URL = 'pulsar://broker:6650'
 TOPIC_EVENTOS_CAMPANIAS = 'persistent://public/default/eventos-campanias'
 TOPIC_COMANDOS_PAGOS = 'persistent://public/default/comandos-pagos'
-TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos-pagos'
+TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos-pagos-json'
 TOPIC_COMANDOS_CLIENTES = 'persistent://public/default/comandos-clientes'
 
 class SagaOrquestador:
@@ -49,7 +49,13 @@ class SagaOrquestador:
     def escuchar_eventos_pago(self, campania_data):
         while True:
             msg = self.consumer_pagos.receive()
-            evento = json.loads(msg.data())
+            raw = msg.data()
+            try:
+                evento = json.loads(raw)
+            except Exception as e:
+                logging.error(f"[CAMPANIAS][SAGA_ORQ] Error parseando evento. Raw: {raw}. Error: {e}")
+                consumer.acknowledge(msg)
+                continue
             tipo = evento.get('type')
             data = evento.get('data', {})
             if data.get('idCampania') != campania_data['idCampania']:

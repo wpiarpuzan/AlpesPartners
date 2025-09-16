@@ -3,13 +3,14 @@ import json
 import logging
 from pulsar import ConsumerType
 
-PULSAR_BROKER_URL = 'pulsar://broker:6650'
+import os
 TOPIC_COMANDOS_CLIENTES = 'persistent://public/default/comandos-clientes'
 TOPIC_EVENTOS_CLIENTES = 'persistent://public/default/eventos-clientes'
 
 class ClienteSagaPublisher:
     def __init__(self):
-        self.client = pulsar.Client(PULSAR_BROKER_URL)
+        pulsar_broker_url = os.environ['PULSAR_BROKER_URL']
+        self.client = pulsar.Client(pulsar_broker_url)
         self.consumer = self.client.subscribe(TOPIC_COMANDOS_CLIENTES, subscription_name='clientes-saga-pub', consumer_type=ConsumerType.Shared)
         self.producer = self.client.create_producer(TOPIC_EVENTOS_CLIENTES)
 
@@ -17,7 +18,13 @@ class ClienteSagaPublisher:
         logging.info('[CLIENTES] Saga publisher iniciado')
         while True:
             msg = self.consumer.receive()
-            comando = json.loads(msg.data())
+            raw = msg.data()
+            try:
+                comando = json.loads(raw)
+            except Exception as e:
+                logging.error(f"[CLIENTE][SAGA_PUBLISHER] Error parseando comando. Raw: {raw}. Error: {e}")
+                self.consumer.acknowledge(msg)
+                continue
             tipo = comando.get('type')
             data = comando.get('data', {})
             if tipo == 'ActualizarCliente':
