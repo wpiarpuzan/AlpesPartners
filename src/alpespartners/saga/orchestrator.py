@@ -48,8 +48,8 @@ class Orchestrator:
         status: str,
         error: Optional[str] = None,
     ):
-    engine = _get_engine()
-    with engine.begin() as conn:
+        engine = _get_engine()
+        with engine.begin() as conn:
             stmt = insert(saga_log).values(
                 saga_id=self.saga_id,
                 step=step,
