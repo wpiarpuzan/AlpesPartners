@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  alpespartner:
+    depends_on: []
+    environment:
+      - MESSAGE_BUS=DB_OUTBOX
+      - MIGRATE_ON_START=true

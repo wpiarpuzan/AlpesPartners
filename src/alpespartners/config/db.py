@@ -30,11 +30,15 @@ MODEL_MODULES = [
 ]
 
 def init_db(app: Flask):
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DB_URL',
+    # Prefer Heroku's DATABASE_URL, then DB_URL. If neither exists, keep
+    # the previous local default. Also normalize legacy 'postgres://' URLs
+    # to the SQLAlchemy-compatible 'postgresql+psycopg2://' scheme.
+    db_url = os.getenv('DATABASE_URL') or os.getenv('DB_URL') or (
         'postgresql+psycopg2://partner:partner@postgres:5432/alpespartner'
-        #'postgresql+psycopg2://partner:partner@127.0.0.1:5432/alpespartner'
     )
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     # Opcional: evita warnings y corta conexiones zombie
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}

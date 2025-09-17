@@ -5,6 +5,8 @@ import traceback
 
 from flask import Flask, jsonify
 from flask_swagger import swagger
+import os
+import threading
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -56,18 +58,45 @@ def create_app(configuracion: dict = {}):
 
     with app.app_context():
         db.create_all()
-        if not app.config.get('TESTING'):
-            comenzar_consumidor()
+        # Run lightweight migrations (create outbox and saga_log) when starting
+        try:
+            from alpespartners.config.migrations import run_startup_migrations
+            run_startup_migrations()
+        except Exception:
+            pass
+
+        # If running in DB_OUTBOX mode, start the Outbox worker in-process
+        if os.getenv('MESSAGE_BUS') == 'DB_OUTBOX':
+            try:
+                from alpespartners.infra.message_bus.worker import OutboxWorker
+
+                def start_worker():
+                    worker = OutboxWorker()
+                    worker.run()
+
+                t = threading.Thread(target=start_worker, daemon=True)
+                t.start()
+            except Exception:
+                pass
+        else:
+            if not app.config.get('TESTING'):
+                comenzar_consumidor()
 
     # Importa Blueprints
     from . import cliente
     from . import pagos
     from . import campanias
+    from . import saga
+    from . import admin
 
     # Registro de Blueprints
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
     app.register_blueprint(campanias.bp)
+    # register saga endpoints and its mocks
+    app.register_blueprint(saga.bp)
+    app.register_blueprint(saga.mock_bp)
+    app.register_blueprint(admin.bp)
 
     # ---- Observabilidad: métricas ----
     from alpespartners.seedwork.observabilidad.metrics import (

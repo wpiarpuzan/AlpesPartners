@@ -53,10 +53,14 @@ def suscribirse_a_eventos_pagos():
         raise Exception(f"No se pudo suscribir a {TOPIC_EVENTOS_PAGOS} después de varios intentos")
     logging.info(f"[CAMPANIAS] Suscrito a eventos pagos: {TOPIC_EVENTOS_PAGOS}")
 
-    # Create a standalone SQLAlchemy engine for background thread operations
+    # Create a standalone SQLAlchemy engine for background thread operations.
+    # Do runtime normalization of the DB URL and avoid creating engines at module
+    # import time to prevent startup crashes when running on Heroku.
     db_url = os.getenv('DB_URL') or os.getenv('DATABASE_URL')
     if not db_url:
         raise RuntimeError('DB_URL not set; cannot create DB engine')
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql+psycopg2://', 1)
     db_url_sql = db_url.replace('+psycopg2', '')
     logging.info(f"[CAMPANIAS] DB engine will use: {db_url_sql}")
     engine = create_engine(db_url_sql, pool_pre_ping=True)

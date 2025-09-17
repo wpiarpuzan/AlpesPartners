@@ -1,0 +1,7 @@
+{
+  "name": "alpespartners-postman",
+  "version": "1.0.0",
+  "scripts": {
+    "test:postman": "newman run postman/entrega5-saga.postman_collection.json -e postman/env.json"
+  }
+}

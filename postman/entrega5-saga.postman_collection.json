@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "Entrega5 - Saga Demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0"
+  },
+  "item": [
+    {
+      "name": "Start order - happy path",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 202', function () { pm.response.to.have.status(202); });",
+              "var json = pm.response.json();",
+              "pm.environment.set('orderId', json.orderId || json.id || json.order_id);",
+              "pm.test('orderId exists', function () { pm.expect(pm.environment.get('orderId')).to.be.ok; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{BASE_URL}}/saga/orders",
+        "body": {"mode": "raw", "raw": "{ \"items\": [{\"sku\": \"A\", \"qty\": 1}], \"amount\": 100 }"}
+      }
+    },
+    {
+      "name": "Poll saga log - until confirmed",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/saga/orders/{{orderId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+              "var j = pm.response.json();",
+              "pm.test('has log array', function () { pm.expect(j.log).to.be.an('array'); });",
+              "var last = j.log[j.log.length-1];",
+              "if (last) { pm.environment.set('lastSagaStatus', last.status); }",
+              "pm.test('final status is CONFIRMED', function () { pm.expect(pm.environment.get('lastSagaStatus')).to.eql('CONFIRMED'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Start order - payment fails (compensation)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{BASE_URL}}/saga/orders",
+        "body": {"mode": "raw", "raw": "{ \"items\": [{\"sku\": \"B\", \"qty\": 2}], \"amount\": 200 }"}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": [
+            "pm.test('status is 202', function () { pm.response.to.have.status(202); });",
+            "pm.environment.set('orderIdFail', pm.response.json().orderId);",
+            "pm.test('orderIdFail exists', function () { pm.expect(pm.environment.get('orderIdFail')).to.be.ok; });"
+          ] }
+        }
+      ]
+    },
+    {
+      "name": "Simulate payment failure",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{BASE_URL}}/payment/charge",
+        "body": {"mode": "raw", "raw": "{ \"sagaId\": \"{{orderIdFail}}\", \"forceFail\": true }"}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": [
+            "pm.test('payment failed (4xx)', function () { pm.response.to.be.error; });"
+          ] }
+        }
+      ]
+    },
+    {
+      "name": "Get saga log - after compensation",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/saga/orders/{{orderIdFail}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": [
+            "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+            "var j = pm.response.json();",
+            "pm.test('has log array', function () { pm.expect(j.log).to.be.an('array'); });",
+            "var last = j.log[j.log.length-1];",
+            "pm.test('final state is COMPENSATED or FAILED', function () { pm.expect(['COMPENSATED','FAILED']).to.include(last.status); });"
+          ] }
+        }
+      ]
+    }
+  ]
+}

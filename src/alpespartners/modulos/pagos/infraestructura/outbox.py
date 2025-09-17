@@ -7,12 +7,19 @@ from alpespartners.modulos.pagos.infraestructura.publisher import publish_event
 import logging
 
 
-def outbox_poller(interval_ms=1000):
+def _get_engine_from_env():
     db_url = os.getenv('DB_URL') or os.getenv('DATABASE_URL')
     if not db_url:
         raise RuntimeError('DB_URL not set; cannot start outbox poller')
+    # Normalize legacy Heroku URL if present and remove +psycopg2 for direct engine
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql+psycopg2://', 1)
     db_url_sql = db_url.replace('+psycopg2', '')
-    engine = create_engine(db_url_sql, pool_pre_ping=True)
+    return create_engine(db_url_sql, pool_pre_ping=True)
+
+
+def outbox_poller(interval_ms=1000):
+    engine = _get_engine_from_env()
 
     def poll():
         while True:

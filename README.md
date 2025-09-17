@@ -306,3 +306,35 @@ services:
     depends_on:
       - alpespartners-core
 ```
+
+## Entrega 5 - Modo Heroku (DB Outbox)
+
+Este repo incluye un modo "cloud" pensado para Heroku donde el broker se sustituye por el patrón Outbox usando la base de datos.
+
+Pasos rápidos para desplegar el BFF en Heroku (container):
+
+1. Asegúrate de tener `heroku` CLI y estar logueado.
+2. Setea variables de entorno en Heroku: `DATABASE_URL` (Heroku Postgres), `MESSAGE_BUS=DB_OUTBOX`, `RETRY_LIMIT=5`, `RETRY_BACKOFF_MS=2000`.
+3. Empuja el contenedor a Heroku o usa `heroku container:push web` según prefieras.
+
+Endpoints relevantes (disponibles en el BFF):
+- `POST /saga/orders` - inicia saga de orden
+- `GET /saga/orders/{id}` - obtiene saga log
+- `POST /inventory/reserve` - mock reserve (forzar fallo con `forceFail: true`)
+- `POST /inventory/release` - mock release compensación
+- `POST /payment/charge` - mock payment (forzar fallo con `forceFail: true`)
+
+Postman collection y comandos
+
+Usa Newman para ejecutar la colección de tests end-to-end:
+
+```
+# usando npm script
+npm run test:postman
+
+# o usando make
+make postman
+```
+
+La colección `postman/entrega5-saga.postman_collection.json` y `postman/env.json` están incluidas.
+

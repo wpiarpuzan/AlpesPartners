@@ -28,6 +28,9 @@ def append_event(aggregate_id: str, type_: str, data: Dict[str, Any]) -> Dict[st
         return {"id": record.id, "aggregate_id": record.aggregate_id, "type": record.type}
 
     # SQLAlchemy engine expects the psycopg2-less URL for direct connect if present
+    # Normalize legacy Heroku URL and create a short-lived engine
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql+psycopg2://', 1)
     db_url_sql = db_url.replace('+psycopg2', '')
     engine = create_engine(db_url_sql, pool_pre_ping=True)
     insert_q = text(

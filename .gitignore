@@ -133,3 +133,20 @@ dmypy.json
 
 # Data Volume for Zookeeper
 /data
+
+# Local reports and test artifacts
+reports/
+newman-report.txt
+newman-summary.json
+
+# Node / Newman
+node_modules/
+
+# Docker local state
+.docker/
+docker-compose.override.yml
+
+# Local payload / temp files
+/tmp/
+payload.json
+
