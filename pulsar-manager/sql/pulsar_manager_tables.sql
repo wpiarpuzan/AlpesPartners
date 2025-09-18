@@ -1,9 +1,4 @@
--- Initialize schema in the default database (usually 'postgres')
--- The init script will create the tables used by Pulsar Manager and by
--- the application (processed_events, campanias_view, etc.) in the current
--- database. For cloud environments it's typical to use a managed DB or
--- to run database migrations instead of bundling DB creation in the image.
-
+-- Tables for Pulsar Manager
 CREATE TABLE IF NOT EXISTS environments (
   name varchar(256) NOT NULL,
   broker varchar(1024) NOT NULL,
@@ -144,22 +139,4 @@ CREATE TABLE IF NOT EXISTS namespaces (
   tenant varchar(255) NOT NULL,
   namespace varchar(255) NOT NULL,
   UNIQUE(tenant, namespace)
-);
-
--- Tabla para marcar eventos procesados (usada por los consumidores para idempotencia)
-CREATE TABLE IF NOT EXISTS processed_events (
-  id BIGSERIAL PRIMARY KEY,
-  aggregate_id varchar(255) NOT NULL,
-  event_type varchar(255) NOT NULL,
-  event_id varchar(255) NOT NULL,
-  processed_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  CONSTRAINT uq_processed_event UNIQUE (aggregate_id, event_type, event_id)
-);
-
--- Tabla proyectada para campanias (vista/proyección actualizada por consumidores)
-CREATE TABLE IF NOT EXISTS campanias_view (
-  id varchar(255) PRIMARY KEY,
-  id_cliente varchar(255),
-  estado varchar(64),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );

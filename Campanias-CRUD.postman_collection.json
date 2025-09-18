@@ -15,14 +15,14 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"idCampania\": \"camp1\",\n  \"idCliente\": \"cliente1\",\n  \"estado\": \"CREADA\"\n}"
+          "raw": "{\n  \"idCampania\": \"camp1\",\n  \"idCliente\": \"cliente1\",\n  \"itinerario\": []\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/campanias/comandos/crear",
+          "raw": "{{baseUrl}}/campanias/comandos/crear",
           "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": ["campanias", "comandos", "crear"]
+          "host": [ "{{host}}" ],
+          "port": "{{port}}",
+          "path": [ "campanias", "comandos", "crear" ]
         }
       },
       "response": []
@@ -33,11 +33,11 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:5000/campanias/{{idCampania}}",
+          "raw": "{{baseUrl}}/campanias/{{idCampania}}",
           "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": ["campanias", "{{idCampania}}"]
+          "host": [ "{{host}}" ],
+          "port": "{{port}}",
+          "path": [ "campanias", "{{idCampania}}" ]
         }
       },
       "response": []
@@ -54,11 +54,11 @@
           "raw": "{\n  \"estado\": \"APROBADA\"\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/campanias/{{idCampania}}",
+          "raw": "{{baseUrl}}/campanias/{{idCampania}}",
           "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": ["campanias", "{{idCampania}}"]
+          "host": [ "{{host}}" ],
+          "port": "{{port}}",
+          "path": [ "campanias", "{{idCampania}}" ]
         }
       },
       "response": []
@@ -69,11 +69,11 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "http://localhost:5000/campanias/{{idCampania}}",
+          "raw": "{{baseUrl}}/campanias/{{idCampania}}",
           "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": ["campanias", "{{idCampania}}"]
+          "host": [ "{{host}}" ],
+          "port": "{{port}}",
+          "path": [ "campanias", "{{idCampania}}" ]
         }
       },
       "response": []
@@ -84,11 +84,11 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:5000/health",
+          "raw": "{{baseUrl}}/health",
           "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": ["health"]
+          "host": [ "{{host}}" ],
+          "port": "{{port}}",
+          "path": [ "health" ]
         }
       },
       "response": []
@@ -99,17 +99,20 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:5000/metrics",
+          "raw": "{{baseUrl}}/metrics",
           "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": ["metrics"]
+          "host": [ "{{host}}" ],
+          "port": "{{port}}",
+          "path": [ "metrics" ]
         }
       },
       "response": []
     }
   ],
   "variable": [
-    { "key": "idCampania", "value": "camp1" }
+    { "key": "idCampania", "value": "camp1" },
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "any" },
+    { "key": "host", "value": "localhost", "type": "any" },
+    { "key": "port", "value": "5000", "type": "any" }
   ]
 }

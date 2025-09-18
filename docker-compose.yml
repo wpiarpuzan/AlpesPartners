@@ -48,6 +48,10 @@ services:
       - pulsar-init
     networks:
       - pulsar
+    environment:
+      # Ensure BookKeeper (bookie) knows how to reach ZK (apply-config-from-env uses PULSAR_PREFIX_)
+      PULSAR_PREFIX_zookeeperServers: 'zookeeper:2181'
+      PULSAR_PREFIX_metadataServiceUri: 'zk://zookeeper:2181/ledgers'
 
   broker:
     image: apachepulsar/pulsar:latest
@@ -63,6 +67,17 @@ services:
       - '8080:8080'
     networks:
       - pulsar
+    environment:
+      # These PULSAR_PREFIX_ env vars are read by apply-config-from-env.py
+      # to populate conf/broker.conf. Ensure clusterName and listeners are set.
+      PULSAR_PREFIX_metadataServiceUri: 'zk://zookeeper:2181/ledgers'
+      PULSAR_PREFIX_managedLedgerDefaultWriteQuorum: '1'
+      PULSAR_PREFIX_managedLedgerDefaultEnsembleSize: '1'
+      PULSAR_PREFIX_managedLedgerDefaultAckQuorum: '1'
+      PULSAR_PREFIX_advertisedListeners: 'external:pulsar://broker:6650'
+      PULSAR_PREFIX_clusterName: 'cluster-a'
+      PULSAR_PREFIX_zookeeperServers: 'zookeeper:2181'
+      PULSAR_PREFIX_advertisedAddress: 'broker'
 
   pulsar-manager:
     image: apachepulsar/pulsar-manager:latest
@@ -93,6 +108,7 @@ services:
     ports:
       - '5000:5000'
     environment:
+      START_CONSUMERS: '1'
       ALPESPARTNERS_ADDRESS: 'alpespartner'
       PULSAR_ADDRESS: 'broker'
       BROKER_HOST: 'broker'

@@ -12,6 +12,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+Campanias-CRUD.postman_collection.json
 develop-eggs/
 dist/
 downloads/

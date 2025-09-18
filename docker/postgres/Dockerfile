@@ -9,9 +9,11 @@ ENV POSTGRES_USER=admin
 ENV POSTGRES_PASSWORD=admin10100101.
 ENV POSTGRES_DB=postgres
 
-# Copy initialization SQL (read-only in the image)
-# This file exists in the repo at: ./pulsar-manager/sql/init.sql
-COPY ../../pulsar-manager/sql/init.sql /docker-entrypoint-initdb.d/init.sql
+# Copy initialization SQL files and helper script into the image
+COPY pulsar-manager/sql/pulsar_manager_tables.sql /docker-entrypoint-initdb.d/pulsar_manager_tables.sql
+COPY pulsar-manager/sql/alpespartner_tables.sql /docker-entrypoint-initdb.d/alpespartner_tables.sql
+COPY docker/postgres/init-dbs.sh /docker-entrypoint-initdb.d/init-dbs.sh
+RUN chmod +x /docker-entrypoint-initdb.d/init-dbs.sh
 
 # Expose the default Postgres port
 EXPOSE 5432
