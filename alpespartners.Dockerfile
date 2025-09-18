@@ -18,4 +18,8 @@ COPY . .
 COPY entrypoint.sh /src/entrypoint.sh
 RUN chmod +x /src/entrypoint.sh
 
-CMD [ "flask", "--app", "./src/alpespartners/api", "run", "--host=0.0.0.0"]
+# Use gunicorn so Heroku can provide the port via $PORT. Use shell form so
+# the environment variable is expanded at container start time by the shell.
+# Bind to 0.0.0.0 and use a reasonable number of workers (2 * CPUs + 1 is common,
+# but keep it small for free dynos).
+CMD exec gunicorn -b 0.0.0.0:${PORT:-5000} "alpespartners.api:create_app()" --workers 2 --threads 4
