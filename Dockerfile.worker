@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+# Install the package so `import alpespartners` works regardless of PYTHONPATH
+RUN pip install --no-cache-dir .
 
 # Worker CMD: run the outbox worker module directly
 CMD ["python", "-m", "alpespartners.infra.message_bus.worker"]
