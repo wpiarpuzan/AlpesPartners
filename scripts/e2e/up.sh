@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-set -euo pipefail
+#set -euo pipefail
 
-echo "[E2E] Levantando servicios (pulsar, bd, alpespartner)..."
-docker compose --profile pulsar --profile bd --profile alpespartner up -d --build
+echo "[E2E] Levantando servicios (pulsar, bd, alpespartner, e2e)..."
+# Include the e2e profile so the newman container is started by this script only
+docker compose --profile pulsar --profile bd --profile alpespartner --profile e2e up -d --build
 
 # Esperar health de Pulsar
 until curl -sf http://localhost:8080/metrics; do

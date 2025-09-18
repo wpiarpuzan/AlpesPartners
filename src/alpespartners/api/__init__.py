@@ -105,7 +105,8 @@ def create_app(configuracion: dict = {}):
 
     with app.app_context():
         db.create_all()
-        if not app.config.get('TESTING'):
+        # Start consumers only when explicitly requested via env var START_CONSUMERS=1
+        if not app.config.get('TESTING') and os.environ.get('START_CONSUMERS', '0') == '1':
             comenzar_consumidor()
 
     # Importa Blueprints
