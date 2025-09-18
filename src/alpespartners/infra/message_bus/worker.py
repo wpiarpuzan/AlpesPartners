@@ -2,6 +2,8 @@ import os
 import time
 import json
 import traceback
+import logging
+import sys
 from datetime import datetime, timedelta
 import requests
 from sqlalchemy import create_engine, select, update
@@ -21,7 +23,7 @@ def default_handle_event(event_row, conn):
     try:
         topic = event_row.topic
         payload = event_row.payload
-        print(f"[outbox.worker] handling event id={event_row.id} topic={topic} payload={payload}")
+        logging.info(f"[outbox.worker] handling event id={event_row.id} topic={topic} payload={payload}")
         base = os.getenv('BFF_BASE_URL', 'http://127.0.0.1:5000')
         if topic == 'inventory.reserve':
             url = f"{base}/inventory/reserve"
@@ -32,10 +34,16 @@ def default_handle_event(event_row, conn):
         else:
             print(f"[outbox.worker] unknown topic {topic}, skipping HTTP call")
             return
-        resp = requests.post(url, json=payload, timeout=5)
-        print(f"[outbox.worker] HTTP {url} -> {resp.status_code}")
+        logging.info(f"[outbox.worker] POST {url} payload={payload}")
+        resp = requests.post(url, json=payload, timeout=10)
+        # Log response details for easier debugging
+        try:
+            body = resp.text
+        except Exception:
+            body = '<unreadable body>'
+        logging.info(f"[outbox.worker] HTTP {url} -> {resp.status_code} body={body}")
     except Exception as e:
-        print(f"[outbox.worker] handler exception: {e}")
+        logging.exception(f"[outbox.worker] handler exception: {e}")
         raise
 
 
@@ -137,16 +145,36 @@ class OutboxWorker:
 
     def run(self):
         self.running = True
-        print('[outbox.worker] started')
+        logging.info('[outbox.worker] started')
         try:
             while self.running:
                 try:
                     processed = self.run_once()
                 except Exception as e:
-                    print('[outbox.worker] run_once error', e)
+                    logging.exception('[outbox.worker] run_once error')
                 time.sleep(POLL_INTERVAL_S)
         except KeyboardInterrupt:
-            print('[outbox.worker] stopped by signal')
+            logging.info('[outbox.worker] stopped by signal')
 
     def stop(self):
         self.running = False
+
+
+def _main():
+    # Configure logging
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+    logging.info('Starting OutboxWorker (module runner)')
+    worker = OutboxWorker()
+    try:
+        worker.run()
+    except Exception:
+        logging.exception('OutboxWorker exited with exception')
+        raise
+
+
+if __name__ == '__main__':
+    try:
+        _main()
+    except Exception:
+        # Exit with non-zero code so process manager can detect failure
+        sys.exit(1)
