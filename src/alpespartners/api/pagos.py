@@ -2,9 +2,9 @@ from flask import Blueprint, jsonify, request, Response
 import json
 
 from alpespartners.seedwork.dominio.excepciones import ExcepcionDominio
-from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
-from alpespartners.modulos.pagos.aplicacion.comandos.registrar_pago import ProcesarPago
-from alpespartners.modulos.pagos.aplicacion.queries.obtener_pago import ObtenerPayout
+from pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
+from pagos.aplicacion.comandos.registrar_pago import ProcesarPago
+from pagos.aplicacion.queries.obtener_pago import ObtenerPayout
 from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando
 from alpespartners.seedwork.aplicacion.queries import ejecutar_query
 

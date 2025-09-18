@@ -19,15 +19,22 @@ FLASK_PID=$!
 
 echo "[ENTRYPOINT] Flask lanzado con PID $FLASK_PID"
 
-# Lanzar consumers explícitamente
-python -m alpespartners.modulos.pagos.infraestructura.consumidores &
-PAGOS_PID=$!
-python -m alpespartners.modulos.campanias.infraestructura.consumidores &
-CAMPANIAS_PID=$!
-python -m alpespartners.modulos.cliente.infraestructura.consumidores &
-CLIENTE_PID=$!
+# Lanzar consumers explícitamente solo si START_CONSUMERS=1
+PAGOS_PID=""
+CAMPANIAS_PID=""
+CLIENTE_PID=""
+if [ "${START_CONSUMERS:-0}" = "1" ]; then
+	python -m pagos.infrastructure.saga_consumer &
+	PAGOS_PID=$!
+	python -m campanias.infrastructure.consumidores &
+	CAMPANIAS_PID=$!
+	python -m cliente.infrastructure.saga_consumer &
+	CLIENTE_PID=$!
 
-echo "[ENTRYPOINT] Consumers lanzados: pagos=$PAGOS_PID campanias=$CAMPANIAS_PID cliente=$CLIENTE_PID"
+	echo "[ENTRYPOINT] Consumers lanzados: pagos=$PAGOS_PID campanias=$CAMPANIAS_PID cliente=$CLIENTE_PID"
+else
+	echo "[ENTRYPOINT] START_CONSUMERS!=1, omitiendo lanzamiento de consumers"
+fi
 
 # Esperar a que Flask termine (mantiene el contenedor vivo)
 wait $FLASK_PID

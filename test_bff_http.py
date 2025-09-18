@@ -32,7 +32,7 @@ async def check_service_health(url: str, service_name: str):
         print(f"❌ {service_name}: Error - {str(e)}")
         return False
 
-async def test_bff_endpoints():
+async def _bff_endpoints():
     """Prueba los endpoints principales del BFF"""
     endpoints = [
         ("Health Check", "GET", "/api/v1/health"),
@@ -66,7 +66,7 @@ async def test_bff_endpoints():
             except Exception as e:
                 print(f"❌ {name}: Error - {str(e)}")
 
-async def test_direct_backend_communication():
+async def _direct_backend_communication():
     """Prueba comunicación directa con servicios backend"""
     print("\n🌐 Probando comunicación directa con AlpesPartners...")
     
@@ -129,11 +129,11 @@ async def main():
     
     # Probar BFF si está disponible
     if bff_ok:
-        await test_bff_endpoints()
+        await _bff_endpoints()
     
     # Probar backend directo si está disponible
     if backend_ok:
-        await test_direct_backend_communication()
+        await _direct_backend_communication()
     
     print("\n✅ Tests completados!")
     print("\n💡 Para ejecutar ambos servicios:")
@@ -154,3 +154,11 @@ if __name__ == "__main__":
     # Ejecutar tests
     exit_code = asyncio.run(main())
     sys.exit(exit_code)
+
+# --- PyTest compatibility wrappers ---
+def test_run_bff_endpoints():
+    # envuelve la coroutine para que pytest la ejecute sin plugin async
+    asyncio.run(_bff_endpoints())
+
+def test_run_direct_backend_communication():
+    asyncio.run(_direct_backend_communication())

@@ -1,12 +1,6 @@
-from pulsar.schema import *
-from alpespartners.seedwork.infraestructura.schema.v1.comandos import (ComandoIntegracion)
+"""Deprecated: Schemas migrados a `src/pagos`.
 
-class ComandoProcesarPagoPayload(ComandoIntegracion):
-    partner_id = String(required=True)
-    cycle_id = String(required=True)
-    correlation_id = String(required=True)
+Este archivo se deja como marcador temporal y no debe usarse.
+"""
 
-class ComandoProcesarPago(Record):
-    partner_id = String()
-    cycle_id = String()
-    correlation_id = String()
+raise RuntimeError("Este módulo fue migrado a `pagos` y no debe usarse.")

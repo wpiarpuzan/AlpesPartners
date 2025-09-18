@@ -218,6 +218,74 @@ services:
       - sidecar
       - pulsar
 
+  campanias:
+    container_name: campanias
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    restart: on-failure
+    profiles: ['alpespartner', 'microservicios']
+    depends_on:
+      broker:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      - SERVICE_MODULE=campanias
+      - PULSAR_BROKER_URL=pulsar://broker:6650
+      - DB_URL=postgresql+psycopg2://admin:admin10100101.@postgres:5432/postgres
+      - TOPIC_EVENTOS_CAMPANIAS=persistent://public/default/eventos.campanias
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+    networks:
+      - sidecar
+      - pulsar
+
+  cliente:
+    container_name: cliente
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    restart: on-failure
+    profiles: ['alpespartner', 'microservicios']
+    depends_on:
+      broker:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      - SERVICE_MODULE=cliente
+      - PULSAR_BROKER_URL=pulsar://broker:6650
+      - DB_URL=postgresql+psycopg2://admin:admin10100101.@postgres:5432/postgres
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+    networks:
+      - sidecar
+      - pulsar
+
+  pagos:
+    container_name: pagos
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    restart: on-failure
+    profiles: ['alpespartner', 'microservicios']
+    depends_on:
+      broker:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      - SERVICE_MODULE=pagos
+      - PULSAR_BROKER_URL=pulsar://broker:6650
+      - DB_URL=postgresql+psycopg2://admin:admin10100101.@postgres:5432/postgres
+      - TOPIC_EVENTOS_PAGOS=persistent://public/default/eventos-pagos-json
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+    networks:
+      - sidecar
+      - pulsar
+
 # ------------------------
 # Volúmenes
 # ------------------------

@@ -1,7 +1,7 @@
 
 from flask import Blueprint, request, jsonify
-from alpespartners.modulos.campanias.aplicacion.servicio import crear_campania_cmd
-from alpespartners.modulos.campanias.infraestructura.repos import CampaniaViewRepo
+from campanias.application.servicio import crear_campania_cmd, obtener_campania_qry
+from campanias.infrastructure.repos import CampaniaViewRepo
 from alpespartners.config.db import db
 
 bp = Blueprint('campanias', __name__, url_prefix='/campanias')

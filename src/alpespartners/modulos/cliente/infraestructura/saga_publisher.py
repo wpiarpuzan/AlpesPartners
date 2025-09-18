@@ -1,3 +1,9 @@
+"""Deprecated: Migrado a `src/cliente`.
+
+Este archivo se deja como marcador temporal.
+"""
+
+raise RuntimeError("Este módulo fue migrado a `cliente` y no debe usarse.")
 import pulsar
 import json
 import logging

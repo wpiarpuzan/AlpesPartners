@@ -73,10 +73,13 @@ def suscribirse_a_eventos_pagos():
             c.execute(q, {"agg": aggregate_id, "et": event_type, "eid": event_id})
 
     def check_event_processed_raw(aggregate_id, event_type, event_id):
-        q = text("SELECT 1 FROM processed_events WHERE aggregate_id = :agg AND event_type = :et AND event_id = :eid LIMIT 1")
-        with engine.connect() as c:
-            r = c.execute(q, {"agg": aggregate_id, "et": event_type, "eid": event_id})
-            return r.first() is not None
+        try:
+            q = text("SELECT 1 FROM processed_events WHERE aggregate_id = :agg AND event_type = :et AND event_id = :eid LIMIT 1")
+            with engine.connect() as c:
+                r = c.execute(q, {"agg": aggregate_id, "et": event_type, "eid": event_id})
+                return r.first() is not None
+        except Exception:
+            return False
 
     def upsert_campania_view_raw(id_campania, id_cliente, estado):
         q = text(
@@ -173,7 +176,10 @@ def suscribirse_a_eventos_pagos():
                 # mark as processed (idempotency)
                 try:
                     mark_event_processed_raw(id_campania, tipo, event_id)
-                    exists = check_event_processed_raw(id_campania, tipo, event_id)
+                    try:
+                        exists = check_event_processed_raw(id_campania, tipo, event_id)
+                    except NameError:
+                        exists = is_event_processed_raw(id_campania, tipo, event_id)
                     logging.info(f"[CAMPANIAS] Evento marcado como procesado: {event_id} (aggregate={id_campania}, type={tipo}) - persisted={exists}")
                 except Exception:
                     logging.exception(f"[CAMPANIAS] Error marcando evento como procesado: {event_id}")

@@ -1,3 +1,9 @@
+"""Deprecated: La infraestructura fue migrada a `src/pagos/infraestructura`.
+
+Este paquete se mantiene solo por compatibilidad temporal y no debe importarse.
+"""
+
+raise RuntimeError("Este paquete fue migrado a `pagos.infraestructura` y no debe importarse.")
 # Lanzar poller de outbox al iniciar el microservicio (excepto en testing)
 import os
 if not os.getenv('TESTING', '').lower() == 'true':

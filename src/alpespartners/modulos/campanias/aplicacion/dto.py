@@ -1,9 +1,6 @@
-from dataclasses import dataclass
-from typing import Any
+"""Deprecated: DTO movido a `src/campanias.aplicacion.dto`.
 
+Este archivo se mantiene solo como marcador por compatibilidad temporal.
+"""
 
-@dataclass
-class CrearCampaniaDTO:
-    idCampania: str
-    idCliente: str
-    itinerario: Any  # Puedes ajustar el tipo según tu dominio
+raise RuntimeError("Este módulo fue migrado a `campanias` y no debe usarse.")

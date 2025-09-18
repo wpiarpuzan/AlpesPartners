@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "[E2E] Levantando servicios (pulsar, bd, alpespartner)..."
 docker compose --profile pulsar --profile bd --profile alpespartner up -d --build

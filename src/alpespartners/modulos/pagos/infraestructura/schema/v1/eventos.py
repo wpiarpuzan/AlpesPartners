@@ -1,21 +1,6 @@
-from pulsar.schema import *
+"""Deprecated: Schemas migrados a `src/pagos`.
 
-class EventoPagoExitoso(Record):
-    payout_id = String()
-    partner_id = String()
-    cycle_id = String()
-    total_amount = Float()
-    currency = String()
-    completed_at = Long()
-    confirmation_id = String()
-    correlation_id = String()
+Este archivo se deja como marcador temporal y no debe usarse.
+"""
 
-class EventoPagoFallido(Record):
-    payout_id = String()
-    partner_id = String()
-    cycle_id = String()
-    total_amount = Float()
-    currency = String()
-    failed_at = Long()
-    reason = String()
-    correlation_id = String()
+raise RuntimeError("Este módulo fue migrado a `pagos` y no debe usarse.")

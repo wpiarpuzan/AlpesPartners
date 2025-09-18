@@ -3,8 +3,8 @@ from flask import jsonify, Response, request
 import alpespartners.seedwork.presentacion.api as api
 from alpespartners.seedwork.dominio.excepciones import ExcepcionDominio
 from alpespartners.seedwork.aplicacion.queries import ejecutar_query
-from alpespartners.modulos.cliente.aplicacion.queries.obtener_cliente import ObtenerClientePorId
-from alpespartners.modulos.cliente.aplicacion.comandos.registrar_cliente import RegistrarCliente
+from cliente.aplicacion.queries.obtener_cliente import ObtenerClientePorId
+from cliente.aplicacion.comandos.registrar_cliente import RegistrarCliente
 from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando
 
 bp = api.crear_blueprint('cliente', '/cliente')

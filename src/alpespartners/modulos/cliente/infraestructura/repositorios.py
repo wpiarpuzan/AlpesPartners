@@ -26,3 +26,9 @@ class ClienteRepositorioSQLAlchemy(IClienteRepositorio):
         print(f"[DEBUG][agregar] ClienteDTO: {cliente_dto}")
         db.session.add(cliente_dto)
         # El commit se manejará por fuera, en la unidad de trabajo (Unit of Work)
+    """Deprecated: Migrado a `src/cliente`.
+
+    Este archivo se deja como marcador temporal.
+    """
+
+    raise RuntimeError("Este módulo fue migrado a `cliente` y no debe usarse.")

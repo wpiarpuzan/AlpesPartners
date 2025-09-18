@@ -1,8 +1,6 @@
-from alpespartners.modulos.cliente.dominio.repositorios import IClienteRepositorio
-from alpespartners.modulos.cliente.infraestructura.repositorios import ClienteRepositorioSQLAlchemy
+"""Deprecated: Migrado a `src/cliente`.
 
-class FabricaRepositorio():
-    def crear_objeto(self, tipo):
-        if tipo == IClienteRepositorio:
-            return ClienteRepositorioSQLAlchemy()
-        raise ValueError(f'Repositorio no implementado para tipo: {tipo}')
+Este archivo se deja como marcador temporal y no debe usarse.
+"""
+
+raise RuntimeError("Este módulo fue migrado a `cliente` y no debe usarse.")

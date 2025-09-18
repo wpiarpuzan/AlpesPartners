@@ -1,14 +1,7 @@
-import json
-import pulsar
-import os
+"""Deprecated: Migrado a `src/pagos`.
 
-import os
-TOPIC_EVENTOS_PAGOS = os.getenv('TOPIC_EVENTOS_PAGOS', 'persistent://public/default/eventos.pagos')
+Este archivo se deja como marcador temporal y no debe usarse.
+"""
 
-def publish_event(event_type, data):
-    pulsar_broker_url = os.environ['PULSAR_BROKER_URL']
-    client = pulsar.Client(pulsar_broker_url)
-    producer = client.create_producer(TOPIC_EVENTOS_PAGOS)
-    envelope = {"type": event_type, "data": data}
-    producer.send(json.dumps(envelope).encode("utf-8"))
-    client.close()
+raise RuntimeError("Este módulo fue migrado a `pagos` y no debe usarse.")
+
