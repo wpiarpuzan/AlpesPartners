@@ -11,7 +11,8 @@ echo "[ENTRYPOINT] Starting with MESSAGE_BUS=${MESSAGE_BUS:-not-set}"
 if [ "${MESSAGE_BUS:-}" = "DB_OUTBOX" ]; then
     echo "[ENTRYPOINT] MESSAGE_BUS=DB_OUTBOX, starting Outbox worker in background"
     # Start the Outbox worker as a separate process so it doesn't block the web server
-    python -m alpespartners.infra.message_bus.worker &
+    # Ensure worker runs with RUN_AS_WORKER=1 so module initializers start pollers
+    env RUN_AS_WORKER=1 python -m alpespartners.infra.message_bus.worker &
     WORKER_PID=$!
     echo "[ENTRYPOINT] Outbox worker started with PID $WORKER_PID"
 else
