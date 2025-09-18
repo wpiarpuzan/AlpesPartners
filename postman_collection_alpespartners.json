@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "AlpesPartners E2E",
+    "_postman_id": "alpes-e2e-collection",
+    "description": "Collection to reproduce happy_path, compensacion, idempotencia and outbox checks using the app test endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+  { "key": "baseUrl", "value": "http://host.docker.internal:5000" },
+    { "key": "campaniaId", "value": "camp-e2e-001" },
+    { "key": "eventId", "value": "evt-1" }
+  ],
+  "item": [
+    {
+      "name": "Create Campania",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"idCampania\": \"{{campaniaId}}\", \"idCliente\": \"cli1\", \"itinerario\": [] }"
+        },
+        "url": "{{baseUrl}}/campanias/comandos/crear"
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 202 or 200', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200,202]);",
+              "});",
+              "var body = pm.response.json();",
+              "if (body && body.idCampania) { pm.collectionVariables.set('campaniaId', body.idCampania); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publish PagoConfirmado (via /test/publish)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"module\": \"pagos\", \"type\": \"PagoConfirmado.v1\", \"data\": { \"eventId\": \"{{eventId}}\", \"idCampania\": \"{{campaniaId}}\", \"monto\": 100 } }"
+        },
+        "url": "{{baseUrl}}/test/publish"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('publish accepted', function () { pm.expect(pm.response.code).to.be.oneOf([200,202]); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Check DB Summary",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/test/db?aggregate_id={{campaniaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('campania exists in view', function () {",
+              "  var body = pm.response.json();",
+              "  pm.expect(body.campanias_view.length).to.be.above(0);",
+              "});",
+              "pm.test('event_store contains CampaniaAprobada', function () {",
+              "  var body = pm.response.json();",
+              "  var has = body.event_store.some(function(e){ return e.type && e.type.indexOf('CampaniaAprobada')!==-1; });",
+              "  pm.expect(has).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

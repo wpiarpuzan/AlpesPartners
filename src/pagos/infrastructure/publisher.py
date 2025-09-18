@@ -8,7 +8,8 @@ _producer = None
 _lock = Lock()
 
 PULSAR_BROKER_URL = os.getenv('PULSAR_BROKER_URL', 'pulsar://broker:6650')
-TOPIC_EVENTOS_PAGOS = os.getenv('TOPIC_EVENTOS_PAGOS', 'persistent://public/default/eventos.pagos')
+# Use the JSON-only pagos topic by default so JSON producers hit consumers subscribed to the JSON topic
+TOPIC_EVENTOS_PAGOS = os.getenv('TOPIC_EVENTOS_PAGOS', 'persistent://public/default/eventos-pagos-json')
 
 def get_producer():
     global _pulsar_client, _producer

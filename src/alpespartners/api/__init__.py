@@ -112,11 +112,13 @@ def create_app(configuracion: dict = {}):
     from . import cliente
     from . import pagos
     from . import campanias
+    from . import tests
 
     # Registro de Blueprints
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
     app.register_blueprint(campanias.bp)
+    app.register_blueprint(tests.bp)
 
     # ---- Observabilidad: métricas ----
     from alpespartners.seedwork.observabilidad.metrics import (
