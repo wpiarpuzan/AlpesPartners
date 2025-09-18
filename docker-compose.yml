@@ -101,6 +101,13 @@ services:
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
       TOPIC_COMANDOS_CAMPANIAS: 'persistent://public/default/comandos.campanias'
       TOPIC_EVENTOS_CAMPANIAS: 'persistent://public/default/eventos.campanias'
+      # Pulsar publisher retry tuning to tolerate broker startup
+      PULSAR_CONNECT_ATTEMPTS: '30'
+      PULSAR_CONNECT_DELAY: '1'
+      PULSAR_PRODUCER_ATTEMPTS: '10'
+      PULSAR_PRODUCER_DELAY: '1'
+      PULSAR_SEND_ATTEMPTS: '5'
+      PULSAR_SEND_DELAY: '0.5'
       PYTHONPATH: '/src'
       PYTHONDONTWRITEBYTECODE: '1'
       PYTHONUNBUFFERED: '1'
@@ -124,6 +131,13 @@ services:
       TOPIC_EVENTOS_CAMPANIAS: 'persistent://public/default/eventos.campanias'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/app/src'
+      # Pulsar publisher retry tuning
+      PULSAR_CONNECT_ATTEMPTS: '30'
+      PULSAR_CONNECT_DELAY: '1'
+      PULSAR_PRODUCER_ATTEMPTS: '10'
+      PULSAR_PRODUCER_DELAY: '1'
+      PULSAR_SEND_ATTEMPTS: '5'
+      PULSAR_SEND_DELAY: '0.5'
     networks:
       - sidecar
       - pulsar
@@ -143,6 +157,13 @@ services:
       DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/app/src'
+      # Pulsar publisher retry tuning
+      PULSAR_CONNECT_ATTEMPTS: '30'
+      PULSAR_CONNECT_DELAY: '1'
+      PULSAR_PRODUCER_ATTEMPTS: '10'
+      PULSAR_PRODUCER_DELAY: '1'
+      PULSAR_SEND_ATTEMPTS: '5'
+      PULSAR_SEND_DELAY: '0.5'
     networks:
       - sidecar
       - pulsar
@@ -162,6 +183,13 @@ services:
       DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/app/src'
+      # Pulsar publisher retry tuning
+      PULSAR_CONNECT_ATTEMPTS: '30'
+      PULSAR_CONNECT_DELAY: '1'
+      PULSAR_PRODUCER_ATTEMPTS: '10'
+      PULSAR_PRODUCER_DELAY: '1'
+      PULSAR_SEND_ATTEMPTS: '5'
+      PULSAR_SEND_DELAY: '0.5'
     networks:
       - sidecar
       - pulsar
