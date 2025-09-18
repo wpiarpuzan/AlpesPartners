@@ -1,0 +1,21 @@
+FROM python:3.12
+
+# Install netcat
+RUN apt-get update && apt-get install -y netcat-openbsd
+
+WORKDIR /app
+ENV PYTHONPATH=/app/src
+
+EXPOSE 5000/tcp
+
+COPY requirements.txt ./
+RUN pip install --upgrade --no-cache-dir "pip<24.1" setuptools wheel
+RUN pip install --no-cache-dir wheel
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Worker CMD: run the outbox worker module directly
+CMD ["python", "-m", "alpespartners.infra.message_bus.worker"]
