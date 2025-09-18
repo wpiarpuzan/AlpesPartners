@@ -112,6 +112,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv-py311/
+
+# Local archives created during cleanup
+archives/
 
 # Spyder project settings
 .spyderproject
