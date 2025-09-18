@@ -21,7 +21,7 @@ class OutboxEvent(db.Model):
     payload = db.Column(db.JSON, nullable=False)
     status = db.Column(db.String, default='PENDING')
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-    published_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
 MODEL_MODULES = [   
     "alpespartners.modulos.cliente.infraestructura.dto",  # idem
