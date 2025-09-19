@@ -27,24 +27,16 @@ class CampaniaServiceAdapter(ICampaniaService):
         self.logger = logging.getLogger(__name__)
     
     async def obtener_campania(self, campania_id: str) -> Optional[CampaniaWeb]:
-        """Obtiene una campaña por ID"""
+        """Obtiene una campaña por ID utilizando HTTP REST API"""
         try:
-            # Como el servicio de campañas es mock, simulamos datos
-            if not campania_id:
+            data = await self.http_client.obtener_campania(campania_id)
+            if not data:
                 return None
             
-            return CampaniaWeb(
-                id=campania_id,
-                cliente_id=f"cliente-{campania_id[:8]}",
-                cliente_nombre=f"Cliente {campania_id[:8]}",
-                itinerario=["Madrid", "Barcelona", "Valencia"],
-                estado=EstadoCampania.APROBADA,
-                fecha_creacion=datetime.now(),
-                fecha_aprobacion=datetime.now(),
-                pago_asociado_id=f"pago-{campania_id[:8]}"
-            )
+            return self._convert_to_campania_web(data)
             
         except Exception as e:
+            self.logger.error(f"Error obteniendo campaña {campania_id}: {str(e)}")
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def listar_campanias(self, pagination: PaginationInfo, filtros: Dict[str, Any] = None) -> PaginatedResult:
@@ -90,20 +82,13 @@ class CampaniaServiceAdapter(ICampaniaService):
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def crear_campania(self, datos: Dict[str, Any]) -> CampaniaWeb:
-        """Crea una nueva campaña"""
+        """Crea una nueva campaña utilizando HTTP REST API"""
         try:
-            nueva_campania = CampaniaWeb(
-                id=f"CAMP{uuid.uuid4().hex[:8].upper()}",
-                cliente_id=datos['cliente_id'],
-                cliente_nombre=datos.get('cliente_nombre'),
-                itinerario=datos.get('itinerario', []),
-                estado=EstadoCampania.CREADA,
-                fecha_creacion=datetime.now()
-            )
-            
-            return nueva_campania
+            campania_data = await self.http_client.crear_campania(datos)
+            return self._convert_to_campania_web(campania_data)
             
         except Exception as e:
+            self.logger.error(f"Error creando campaña: {str(e)}")
             raise ServiceUnavailableException(self.service_name, str(e))
     
     async def obtener_campanias_por_cliente(self, cliente_id: str, limit: int = 10) -> List[CampaniaWeb]:
@@ -142,3 +127,39 @@ class CampaniaServiceAdapter(ICampaniaService):
             
         except Exception as e:
             raise ServiceUnavailableException(self.service_name, str(e))
+    
+    def _convert_to_campania_web(self, data: Dict[str, Any]) -> CampaniaWeb:
+        """Convierte datos del servicio HTTP al modelo BFF"""
+        # Mapeo de estados
+        estado_mapping = {
+            "CREADA": EstadoCampania.CREADA,
+            "APROBADA": EstadoCampania.APROBADA,
+            "CANCELADA": EstadoCampania.CANCELADA,
+            "COMPLETADA": EstadoCampania.COMPLETADA
+        }
+        
+        # Manejo de fechas
+        fecha_creacion = None
+        if data.get('fecha_creacion'):
+            try:
+                fecha_creacion = datetime.fromisoformat(data['fecha_creacion'].replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                fecha_creacion = datetime.now()
+        
+        fecha_aprobacion = None
+        if data.get('fecha_aprobacion'):
+            try:
+                fecha_aprobacion = datetime.fromisoformat(data['fecha_aprobacion'].replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                pass
+        
+        return CampaniaWeb(
+            id=str(data['id']),
+            cliente_id=str(data.get('cliente_id', '')),
+            cliente_nombre=str(data.get('cliente_nombre', data.get('cliente_id', ''))),
+            itinerario=data.get('itinerario', []),
+            estado=estado_mapping.get(str(data.get('estado', 'CREADA')).upper(), EstadoCampania.CREADA),
+            fecha_creacion=fecha_creacion or datetime.now(),
+            fecha_aprobacion=fecha_aprobacion,
+            pago_asociado_id=data.get('pago_asociado_id')
+        )
