@@ -1,0 +1,159 @@
+{
+  "info": {
+    "name": "AlpesPartners E2E - Saga Happy Path",
+    "_postman_id": "alpes-e2e-saga",
+    "description": "Verifies the Saga: create campaign -> initial state PENDIENTE -> publish PagoConfirmado -> final state APROBADA",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "campaniaId", "value": "camp-e2e-001" },
+    { "key": "eventId", "value": "evt-1" }
+  ],
+  "item": [
+    {
+      "name": "1 - Create Campania",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"idCampania\": \"{{campaniaId}}\", \"idCliente\": \"cli1\", \"itinerario\": [] }"
+        },
+        "url": "{{baseUrl}}/campanias/comandos/crear"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Create returned 200 or 202', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200,202]);",
+              "});",
+              "try {",
+              "  var body = pm.response.json();",
+              "  if (body && body.idCampania) { pm.collectionVariables.set('campaniaId', body.idCampania); }",
+              "} catch (e) {}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Check campaign initial state (PENDIENTE)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/campanias/{{campaniaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200', function(){ pm.expect(pm.response.code).to.eql(200); });",
+              "pm.test('State is PENDIENTE', function(){",
+              "  var body = pm.response.json();",
+              "  pm.expect(JSON.stringify(body)).to.include('PENDIENTE');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Publish PagoConfirmado",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"module\": \"pagos\", \"type\": \"PagoConfirmado.v1\", \"data\": { \"idCampania\": \"{{campaniaId}}\", \"eventId\": \"{{eventId}}\" } }"
+        },
+        "url": "{{baseUrl}}/test/publish"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Publish returns 200 or 202', function () { pm.expect(pm.response.code).to.be.oneOf([200,202]); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Check campaign final state (APROBADA)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/campanias/{{campaniaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// This step expects the Saga to have processed the PagoConfirmado and changed state to APROBADA",
+              "pm.test('HTTP 200', function(){ pm.expect(pm.response.code).to.eql(200); });",
+              "// Poll the campaign endpoint several times (with small delay) until state includes 'APROBADA' or timeout",
+              "(function(){",
+              "  var maxAttempts = 10;",
+              "  var delay = 500;",
+              "  var attempt = 0;",
+              "  function checkResponse(resp) {",
+              "    var bodyText = JSON.stringify(resp.json ? resp.json() : pm.response.json());",
+              "    if (bodyText.indexOf('APROBADA') !== -1) {",
+              "      pm.test('State is APROBADA', function(){ pm.expect(bodyText).to.include('APROBADA'); });",
+              "      return;",
+              "    }",
+              "    attempt++;",
+              "    if (attempt >= maxAttempts) {",
+              "      pm.test('State is APROBADA', function(){ pm.expect(bodyText).to.include('APROBADA'); });",
+              "      return;",
+              "    }",
+              "    setTimeout(function(){",
+              "      pm.sendRequest({ url: pm.variables.get('baseUrl') + '/campanias/' + pm.variables.get('campaniaId'), method: 'GET' }, function (err, res) {",
+              "        if (err) {",
+              "          pm.test('poll request error', function(){ pm.expect.fail('poll failed: ' + err); });",
+              "          return;",
+              "        }",
+              "        checkResponse(res);",
+              "      });",
+              "    }, delay);",
+              "  }",
+              "  // use initial response to start polling",
+              "  try { checkResponse(pm.response); } catch (e) { pm.test('polling failed', function(){ pm.expect.fail(e); }); }",
+              "})();"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Optional: event_store entries",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/test/db?aggregate_id={{campaniaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('event_store contains PagoConfirmado or CampaniaAprobada', function () {",
+              "  var body = pm.response.json();",
+              "  var has = (body.event_store || []).some(function (e) { return e.type && (e.type.indexOf('PagoConfirmado') !== -1 || e.type.indexOf('CampaniaAprobada') !== -1); });",
+              "  pm.expect(has).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

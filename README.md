@@ -306,3 +306,39 @@ services:
     depends_on:
       - alpespartners-core
 ```
+
+## Developer: local quickstart
+
+Steps to run the stack locally using the published Postgres image and run the saga Postman collection (PowerShell):
+
+1. Build and/or pull the Postgres image (example: GHCR):
+
+```powershell
+# If you built locally and want to tag & push manually:
+docker build -f docker/postgres/Dockerfile -t ghcr.io/<your-org>/alpespartners-postgres:latest .
+docker push ghcr.io/<your-org>/alpespartners-postgres:latest
+
+# Or set the env to use the existing published image when starting compose
+$env:USE_LOCAL_POSTGRES_IMAGE = 'ghcr.io/<your-org>/alpespartners-postgres:latest'
+```
+
+2. Start the minimal stack (includes Pulsar broker and app services):
+
+```powershell
+docker-compose --profile alpespartner --profile pulsar up -d --remove-orphans
+```
+
+3. Run the saga collection with newman (containerized):
+
+```powershell
+docker run --rm -v ${PWD}:/etc/newman -w /etc/newman postman/newman:alpine run postman_collection_alpespartners_saga.json -e postman_environment_alpespartners_host.json -r json --reporter-json-export reports/newman-report-saga.json
+Get-Content reports\newman-report-saga.json | Select-String '"failed"' -Context 0,2
+```
+
+4. If something fails, collect logs:
+
+```powershell
+docker logs alpespartner --tail 200 > reports/alpespartner.log
+docker logs broker --tail 200 > reports/broker.log
+docker exec -it postgres psql -U admin -d alpespartner -c "SELECT * FROM processed_events LIMIT 10;" > reports/db_events.txt
+```

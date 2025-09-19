@@ -8,10 +8,6 @@ from dataclasses import dataclass
 from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando as comando
 from alpespartners.seedwork.aplicacion.comandos import Comando
 from alpespartners.seedwork.aplicacion.comandos import ComandoHandler
-from alpespartners.modulos.pagos.dominio.entidades import Payout, Transaction
-from alpespartners.modulos.pagos.dominio.repositorios import IPayoutRepositorio, ITransactionRepositorio
-from alpespartners.seedwork.infraestructura.uow import UnidadTrabajoPuerto
-from alpespartners.modulos.pagos.infraestructura.fabricas import FabricaRepositorio
 from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPayout
 
 # ===================================
@@ -25,12 +21,18 @@ class ProcesarPago(Comando):
     """
     partner_id: str
     cycle_id: str
-    total_amount: float = None
-    currency: str = None
+    total_amount: float
+    currency: str
+    confirmation_id: str
+    failure_reason: str = None
     payment_method_type: str = None
     payment_method_mask: str = None
-    confirmation_id: str = None
-    failure_reason: str = None
+    """Deprecated: Migrado a `src/pagos`.
+
+    Este archivo se deja como marcador temporal y no debe usarse.
+    """
+
+    raise RuntimeError("Este módulo fue migrado a `pagos` y no debe usarse.")
     processed_at: str = None
     completed_at: str = None
 
@@ -39,50 +41,19 @@ class ProcesarPago(Comando):
 # ===================================
 
 class ProcesarPagoHandler(ComandoHandler):
-    def handle(self, payout_dto):
-        fabrica = FabricaRepositorio()
-        self._repo_payout: IPayoutRepositorio = fabrica.crear_objeto(IPayoutRepositorio)
-        self._repo_transacciones: ITransactionRepositorio = fabrica.crear_objeto(ITransactionRepositorio)
-
-        payout: Payout = Payout.crear(
-            partner_id=payout_dto.partner_id,
-            cycle_id=payout_dto.cycle_id,
-            payment_method_type=payout_dto.payment_method_type,
-            payment_method_mask=payout_dto.payment_method_mask
-        )
-        # Asignar campos adicionales del DTO al objeto de dominio
-        if hasattr(payout, 'monto_total') and payout_dto.total_amount:
-            payout.monto_total.valor = payout_dto.total_amount
-        if hasattr(payout, 'monto_total') and payout_dto.currency:
-            payout.monto_total.moneda = payout_dto.currency
-        if hasattr(payout, 'confirmation_id'):
-            payout.confirmation_id = payout_dto.confirmation_id
-        if hasattr(payout, 'failure_reason'):
-            payout.failure_reason = payout_dto.failure_reason
-        if hasattr(payout, 'medio_pago') and payout_dto.payment_method_type:
-            payout.medio_pago.tipo = payout_dto.payment_method_type
-        if hasattr(payout, 'medio_pago') and payout_dto.payment_method_mask:
-            payout.medio_pago.mask = payout_dto.payment_method_mask
-        if payout_dto.processed_at:
-            payout.processed_at = payout_dto.processed_at
-        if payout_dto.completed_at:
-            payout.completed_at = payout_dto.completed_at
-
-        transacciones: list[Transaction] = self._repo_transacciones.obtener_por_partner_y_ciclo(
-            partner_id=payout_dto.partner_id,
-            cycle_id=payout_dto.cycle_id
-        )
-
-        if not transacciones:
-            print(f"No se encontraron transacciones para el partner {payout_dto.partner_id}, ciclo {payout_dto.cycle_id}. No se procesará el pago.")
-            return None
-
-        payout.calcular_comisiones(transacciones)
-        UnidadTrabajoPuerto.registrar_batch(self._repo_payout.agregar, payout)
-        UnidadTrabajoPuerto.savepoint()
-        UnidadTrabajoPuerto.commit()
-        print(f"Payout para partner {payout.partner_id} procesado y listo para commit.")
-        return payout
+    def handle(self, comando):
+        # Solo publicar el comando en Pulsar
+        import pulsar, json, logging, os
+        logging.basicConfig(level=logging.INFO, force=True)
+        PULSAR_BROKER_URL = os.environ['PULSAR_BROKER_URL']
+        TOPIC_COMANDOS_PAGOS = 'persistent://public/default/comandos-pagos'
+        client = pulsar.Client(PULSAR_BROKER_URL)
+        producer = client.create_producer(TOPIC_COMANDOS_PAGOS)
+        mensaje = {'type': 'ProcesarPago', 'data': comando.__dict__}
+        producer.send(json.dumps(mensaje).encode('utf-8'))
+        print(f"[PULSAR][PUBLICACION][COMANDO] Comando publicado en Pulsar: {mensaje}")
+        client.close()
+        return 'ok'
 
 @comando.register(ProcesarPago)
 def ejecutar_comando_procesar_pago(comando: ProcesarPago):

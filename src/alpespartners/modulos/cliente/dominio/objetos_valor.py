@@ -1,33 +1,7 @@
-"""Objetos valor del dominio de cliente
+"""Deprecated: Migrado a `src/cliente`.
 
-En este archivo usted encontrará los objetos valor del dominio de cliente
-
+Este archivo se deja como marcador temporal y no debe usarse.
 """
 
-from alpespartners.seedwork.dominio.objetos_valor import ObjetoValor, Ciudad
-from dataclasses import dataclass
-
-@dataclass(frozen=True)
-class Nombre(ObjetoValor):
-    nombres: str
-    apellidos: str
-
-@dataclass(frozen=True)
-class Email(ObjetoValor):
-    address: str
-    dominio: str
-    es_empresarial: bool
-
-@dataclass(frozen=True)
-class Cedula(ObjetoValor):
-    numero: int
-
-@dataclass(frozen=True)
-class Rut(ObjetoValor):
-    numero: int
-    ciudad: Ciudad
-
-class MetodosPago(ObjetoValor):
-    # TODO
-    ...
+raise RuntimeError("Este módulo fue migrado a `cliente` y no debe usarse.")
 

@@ -1,0 +1,40 @@
+Entrega5 - Saga Demo
+
+→ Start order - happy path
+  POST http://localhost:5000/saga/orders [202 ACCEPTED, 242B, 69ms]
+  √  status is 202
+  √  orderId exists
+
+→ Poll saga log - until confirmed
+  GET http://localhost:5000/saga/orders/299a8519-ea7f-4efd-9c89-2a5cc54ca541 [200 OK, 1.9kB, 22ms]
+  √  200 OK
+  √  has log array
+  √  final status is CONFIRMED
+
+→ Start order - payment fails (compensation)
+  POST http://localhost:5000/saga/orders [202 ACCEPTED, 242B, 35ms]
+  √  status is 202
+  √  orderIdFail exists
+
+→ Simulate payment failure
+  POST http://localhost:5000/payment/charge [400 BAD REQUEST, 193B, 22ms]
+  √  payment failed (4xx)
+
+→ Get saga log - after compensation
+  GET http://localhost:5000/saga/orders/0a47eedd-0c37-4b7b-9840-5f68c791bb55 [200 OK, 3.07kB, 13ms]
+  √  200 OK
+  √  has log array
+  √  final state is COMPENSATED or FAILED
+
+Summary
+- requests executed: 5
+- failed requests: 0
+- test-scripts executed: 5
+- assertions: 11
+- failed assertions: 0
+- total run duration: 20.7s
+- total data received: ~4.79kB
+
+Notes
+- Run executed with BASE_URL=http://localhost:5000 and --delay-request 4000 to avoid race conditions with the DB outbox worker.
+- Use the README_DEMO.md for exact reproduce steps and commands.

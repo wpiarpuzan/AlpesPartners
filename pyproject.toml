@@ -8,6 +8,10 @@ description = "Proyecto Alpes Partners"
 readme = "README.md"
 requires-python = ">=3.12"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
@@ -15,3 +19,7 @@ addopts = [
 pythonpath = [
   ".", "src",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

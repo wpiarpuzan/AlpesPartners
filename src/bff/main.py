@@ -25,7 +25,7 @@ def main():
     debug = os.getenv('BFF_DEBUG', 'False').lower() == 'true'
     
     # Configuración de servicios backend
-    alpespartners_url = os.getenv('ALPESPARTNERS_SERVICE_URL', 'http://localhost:5000')
+    alpespartners_url = os.environ['ALPESPARTNERS_SERVICE_URL']
     http_timeout = os.getenv('BFF_HTTP_TIMEOUT', '30')
     
     print(f"""

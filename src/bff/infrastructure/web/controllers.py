@@ -1,3 +1,62 @@
+# Endpoint para consultar campaña por id
+@bff_bp.route('/campanias/<id_campania>', methods=['GET'])
+@async_route
+async def get_campania(id_campania):
+    """Consulta el estado de una campaña por id"""
+    import os, requests
+    backend_url = os.environ['ALPESPARTNERS_SERVICE_URL']
+    try:
+        resp = requests.get(f"{backend_url}/campanias/{id_campania}", timeout=10)
+        if resp.status_code == 404:
+            return jsonify({'error': 'Campania no encontrada'}), 404
+        if resp.status_code != 200:
+            return jsonify({'error': 'Error consultando campaña', 'backend_status': resp.status_code, 'backend_response': resp.text}), 502
+        data = resp.json().get('campania')
+        if not data:
+            return jsonify({'error': 'Campania no encontrada'}), 404
+        # Mapear estados y mensajes
+        estado = data.get('estado', 'PENDIENTE')
+        msg = 'En proceso'
+        if estado == 'APROBADA':
+            msg = 'Campaña aprobada'
+        elif estado == 'CANCELADA':
+            msg = 'Campaña cancelada'
+        return jsonify({'idCampania': id_campania, 'estado': estado, 'mensaje': msg, 'detalle': data}), 200
+    except Exception as e:
+        current_app.logger.error(f"Error consultando campaña en backend: {e}")
+        return jsonify({'error': 'Timeout o error de red al consultar campaña', 'details': str(e)}), 504
+# Endpoint para crear campaña (flujo principal Saga)
+@bff_bp.route('/campanias', methods=['POST'])
+@async_route
+async def crear_campania():
+    """Crea una campaña y dispara la saga (coreografía)"""
+    try:
+        schema = CampaniaCreateSchema()
+        data = schema.load(request.json)
+    except ValidationError as e:
+        return jsonify({'error': 'Datos inválidos', 'details': e.messages}), 400
+
+    # Generar idCampania único si no viene
+    import uuid
+    id_campania = data.get('idCampania') or str(uuid.uuid4())
+    payload = {
+        'idCampania': id_campania,
+        'idCliente': data['cliente_id'],
+        'itinerario': data['itinerario']
+    }
+    # Llamar backend AlpesPartners (comando crear campaña)
+    import os, requests
+    backend_url = os.environ['ALPESPARTNERS_SERVICE_URL']
+    try:
+        resp = requests.post(f"{backend_url}/campanias/comandos/crear", json=payload, timeout=10)
+        if resp.status_code not in (200, 201, 202):
+            return jsonify({'error': 'Error creando campaña', 'backend_status': resp.status_code, 'backend_response': resp.text}), 502
+    except Exception as e:
+        current_app.logger.error(f"Error llamando a backend AlpesPartners: {e}")
+        return jsonify({'error': 'Timeout o error de red al crear campaña', 'details': str(e)}), 504
+
+    current_app.logger.info(f"Campaña creada: {id_campania}")
+    return jsonify({'idCampania': id_campania, 'status': 'PENDIENTE'}), 202
 """
 Controladores web para el BFF
 

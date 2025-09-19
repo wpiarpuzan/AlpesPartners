@@ -10,25 +10,85 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Handlers de dominio (registran comandos/eventos)
 def registrar_handlers():
-    import alpespartners.modulos.cliente.aplicacion
-    import alpespartners.modulos.pagos.aplicacion
+    import cliente.aplicacion
+    import pagos.aplicacion
 
 # Modelos SQLAlchemy
 def importar_modelos_alchemy():
-    import alpespartners.modulos.cliente.infraestructura.dto
-    import alpespartners.modulos.pagos.infraestructura.dto
+    try:
+        import cliente.infraestructura.dto
+    except Exception:
+        pass
+    try:
+        import pagos.infraestructura.dto
+    except Exception:
+        pass
 
 # Consumidores de eventos (ejemplo, pagos/cliente)
 def comenzar_consumidor():
-    import alpespartners.modulos.cliente.infraestructura.consumidores as cliente
-    import alpespartners.modulos.pagos.infraestructura.consumidores as pagos
-    import alpespartners.modulos.campanias.infraestructura.consumidores as campanias
+    # Try multiple possible import paths to remain compatible with
+    # migrated modules and older monolith layout.
+    def try_import(*candidates):
+        for name in candidates:
+            try:
+                module = __import__(name, fromlist=['*'])
+                return module
+            except Exception:
+                continue
+        return None
 
-    threading.Thread(target=cliente.suscribirse_a_pagos).start()
-    threading.Thread(target=pagos.suscribirse_a_eventos).start()
-    threading.Thread(target=cliente.suscribirse_a_comandos).start()
-    threading.Thread(target=pagos.suscribirse_a_comandos).start()
-    threading.Thread(target=campanias.suscribirse_a_eventos_pagos, daemon=True).start()
+    cliente = try_import(
+        'cliente.infrastructure.consumidores',
+        'cliente.infraestructura.consumidores',
+        'alpespartners.modulos.cliente.infraestructura.consumidores',
+        'src.cliente.infrastructure.consumidores'
+    )
+    pagos = try_import(
+        'pagos.infrastructure.consumidores',
+        'pagos.infraestructura.consumidores',
+        'alpespartners.modulos.pagos.infraestructura.consumidores',
+        'src.pagos.infrastructure.consumidores'
+    )
+    campanias = try_import(
+        'campanias.infrastructure.consumidores',
+        'campanias.infraestructura.consumidores',
+        'alpespartners.modulos.campanias.infraestructura.consumidores',
+        'src.campanias.infrastructure.consumidores'
+    )
+
+    def run_with_log(name, fn):
+        def wrapper():
+            logging.info(f"[CONSUMER-START] Lanzando hilo: {name}")
+            try:
+                fn()
+            except Exception as e:
+                logging.error(f"[CONSUMER-FAIL] Hilo {name} terminó con error: {e}")
+                logging.error(traceback.format_exc())
+        t = threading.Thread(target=wrapper, daemon=True)
+        t.start()
+
+    # Consumers expected to expose function `suscribirse_a_eventos_pagos` or `run`
+    if cliente is not None:
+        if hasattr(cliente, 'suscribirse_a_pagos'):
+            run_with_log('cliente.suscribirse_a_pagos', cliente.suscribirse_a_pagos)
+        if hasattr(cliente, 'suscribirse_a_comandos'):
+            run_with_log('cliente.suscribirse_a_comandos', cliente.suscribirse_a_comandos)
+    else:
+        logging.warning('No se encontró módulo consumidor para cliente (skipping)')
+
+    if pagos is not None:
+        if hasattr(pagos, 'suscribirse_a_eventos'):
+            run_with_log('pagos.suscribirse_a_eventos', pagos.suscribirse_a_eventos)
+        if hasattr(pagos, 'suscribirse_a_comandos'):
+            run_with_log('pagos.suscribirse_a_comandos', pagos.suscribirse_a_comandos)
+    else:
+        logging.warning('No se encontró módulo consumidor para pagos (skipping)')
+
+    if campanias is not None:
+        if hasattr(campanias, 'suscribirse_a_eventos_pagos'):
+            run_with_log('campanias.suscribirse_a_eventos_pagos', campanias.suscribirse_a_eventos_pagos)
+    else:
+        logging.warning('No se encontró módulo consumidor para campanias (skipping)')
 
 def create_app(configuracion: dict = {}):
     app = Flask(__name__, instance_relative_config=True)
@@ -45,18 +105,21 @@ def create_app(configuracion: dict = {}):
 
     with app.app_context():
         db.create_all()
-        if not app.config.get('TESTING'):
+        # Start consumers only when explicitly requested via env var START_CONSUMERS=1
+        if not app.config.get('TESTING') and os.environ.get('START_CONSUMERS', '0') == '1':
             comenzar_consumidor()
 
     # Importa Blueprints
     from . import cliente
     from . import pagos
     from . import campanias
+    from . import tests
 
     # Registro de Blueprints
     app.register_blueprint(cliente.bp)
     app.register_blueprint(pagos.bp)
     app.register_blueprint(campanias.bp)
+    app.register_blueprint(tests.bp)
 
     # ---- Observabilidad: métricas ----
     from alpespartners.seedwork.observabilidad.metrics import (

@@ -24,7 +24,7 @@ class DIContainer:
     
     def __init__(self):
         # Configuración de URLs de servicios backend
-        self.alpespartners_base_url = os.getenv('ALPESPARTNERS_SERVICE_URL', 'http://localhost:5000')
+    self.alpespartners_base_url = os.environ['ALPESPARTNERS_SERVICE_URL']
         self.http_timeout = int(os.getenv('BFF_HTTP_TIMEOUT', '30'))
         
         # Servicios de infraestructura

@@ -2,9 +2,9 @@ from flask import Blueprint, jsonify, request, Response
 import json
 
 from alpespartners.seedwork.dominio.excepciones import ExcepcionDominio
-from alpespartners.modulos.pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
-from alpespartners.modulos.pagos.aplicacion.comandos.registrar_pago import ProcesarPago
-from alpespartners.modulos.pagos.aplicacion.queries.obtener_pago import ObtenerPayout
+from pagos.aplicacion.mapeadores import MapeadorPayoutDTOJson
+from pagos.aplicacion.comandos.registrar_pago import ProcesarPago
+from pagos.aplicacion.queries.obtener_pago import ObtenerPayout
 from alpespartners.seedwork.aplicacion.comandos import ejecutar_commando
 from alpespartners.seedwork.aplicacion.queries import ejecutar_query
 
@@ -15,20 +15,21 @@ mapeador_payout = MapeadorPayoutDTOJson()
 def procesar_payout_asincrono():
     try:
         payout_dict = request.json
+        payout_dto_in = mapeador_payout.externo_a_dto(payout_dict)
         comando = ProcesarPago(
-            partner_id=payout_dict.get('partner_id'),
-            cycle_id=payout_dict.get('cycle_id'),
-            total_amount=payout_dict.get('total_amount'),
-            currency=payout_dict.get('currency'),
-            payment_method_type=payout_dict.get('payment_method_type'),
-            payment_method_mask=payout_dict.get('payment_method_mask'),
-            confirmation_id=payout_dict.get('confirmation_id'),
-            failure_reason=payout_dict.get('failure_reason'),
-            processed_at=payout_dict.get('processed_at'),
-            completed_at=payout_dict.get('completed_at')
+            partner_id=payout_dto_in.partner_id,
+            cycle_id=payout_dto_in.cycle_id,
+            total_amount=payout_dto_in.monto_total_valor,
+            currency=payout_dto_in.monto_total_moneda,
+            confirmation_id=payout_dto_in.confirmation_id,
+            failure_reason=payout_dto_in.failure_reason,
+            payment_method_type=payout_dto_in.payment_method_type,
+            payment_method_mask=payout_dto_in.payment_method_mask,
+            processed_at=str(payout_dto_in.processed_at) if payout_dto_in.processed_at else None,
+            completed_at=str(payout_dto_in.completed_at) if payout_dto_in.completed_at else None
         )
-        payout = ejecutar_commando(comando)
-        payout_id = payout.id if payout else None
+        resultado = ejecutar_commando(comando)
+        payout_id = resultado if resultado else None
         return Response(json.dumps({'id': payout_id}), status=202, mimetype='application/json')
     except ExcepcionDominio as e:
         return Response(json.dumps({'error': str(e)}), status=400, mimetype='application/json')

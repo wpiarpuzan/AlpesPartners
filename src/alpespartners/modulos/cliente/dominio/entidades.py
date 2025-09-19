@@ -29,3 +29,10 @@ class ClienteNatural(Usuario):
 class ClienteEmpresa(Usuario):
     rut: Rut = field(default_factory=Rut)
     fecha_constitucion: datetime = field(default_factory=datetime)
+
+"""Deprecated: Migrado a `src/cliente`.
+
+Este archivo se deja como marcador temporal.
+"""
+
+raise RuntimeError("Este módulo fue migrado a `cliente` y no debe usarse.")

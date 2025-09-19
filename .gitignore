@@ -12,6 +12,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+Campanias-CRUD.postman_collection.json
 develop-eggs/
 dist/
 downloads/
@@ -133,3 +134,10 @@ dmypy.json
 
 # Data Volume for Zookeeper
 /data
+
+# Local test artifacts and generated reports
+newman-report*.json
+broker_inspect.json
+payload_create.json
+reports/*.json
+node_modules/
