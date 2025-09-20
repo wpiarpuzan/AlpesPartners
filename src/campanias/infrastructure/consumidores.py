@@ -46,7 +46,35 @@ def suscribirse_a_eventos_pagos():
         raise RuntimeError('DB_URL not set; cannot create DB engine')
     db_url_sql = db_url.replace('+psycopg2', '')
     logging.info(f"[CAMPANIAS] DB engine will use: {db_url_sql}")
-    engine = create_engine(db_url_sql, pool_pre_ping=True)
+    # Create engine with retries in case the DB hostname or service is not yet resolvable
+    engine = None
+    parsed = None
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(db_url_sql)
+        hostname = parsed.hostname
+    except Exception:
+        hostname = None
+
+    for attempt in range(10):
+        try:
+            if hostname:
+                try:
+                    import socket
+                    socket.gethostbyname(hostname)
+                except Exception:
+                    raise
+            engine = create_engine(db_url_sql, pool_pre_ping=True)
+            # try a quick connection
+            with engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+            logging.info(f"[CAMPANIAS] DB engine created and verified (attempt {attempt+1})")
+            break
+        except Exception as e:
+            logging.warning(f"[CAMPANIAS] DB engine not ready (attempt {attempt+1}/10): {e}")
+            time.sleep(min(2 ** attempt, 30))
+    if engine is None:
+        raise RuntimeError('Could not create DB engine after retries')
 
     def is_event_processed_raw(aggregate_id, event_type, event_id):
         q = text("SELECT 1 FROM processed_events WHERE aggregate_id = :agg AND event_type = :et AND event_id = :eid LIMIT 1")
