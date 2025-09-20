@@ -1,21 +1,98 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: ${USE_LOCAL_POSTGRES_IMAGE:-alpespartners-postgres:latest}
-    container_name: postgres
+  # ========================================
+  # POSTGRESQL DATABASES - One per microservice
+  # ========================================
+  
+  # Core AlpesPartners Database (Event Store, Outbox, System Config)
+  postgres-core:
+    image: postgres:15-alpine
+    container_name: postgres-core
     restart: unless-stopped
     ports:
       - '54320:5432'
     environment:
+      POSTGRES_DB: alpespartners_core
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: 'admin10100101.'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./pulsar-manager/sql/alpespartner_tables.sql:/docker-entrypoint-initdb.d/alpespartner_tables.sql:ro
-      - ./pulsar-manager/sql/pulsar_manager_tables.sql:/docker-entrypoint-initdb.d/pulsar_manager_tables.sql:ro
+      - postgres_core_data:/var/lib/postgresql/data
+      - ./pulsar-manager/sql/alpespartners_core_schema.sql:/docker-entrypoint-initdb.d/01-core-schema.sql:ro
+      - ./pulsar-manager/sql/pulsar_manager_tables.sql:/docker-entrypoint-initdb.d/02-pulsar-manager.sql:ro
     networks:
       - sidecar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d alpespartners_core"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cliente Microservice Database
+  postgres-cliente:
+    image: postgres:15-alpine
+    container_name: postgres-cliente
+    restart: unless-stopped
+    ports:
+      - '54321:5432'
+    environment:
+      POSTGRES_DB: cliente_db
+      POSTGRES_USER: cliente_user
+      POSTGRES_PASSWORD: 'cliente123.'
+    volumes:
+      - postgres_cliente_data:/var/lib/postgresql/data
+      - ./pulsar-manager/sql/cliente_schema.sql:/docker-entrypoint-initdb.d/cliente-schema.sql:ro
+    networks:
+      - sidecar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cliente_user -d cliente_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Pagos Microservice Database
+  postgres-pagos:
+    image: postgres:15-alpine
+    container_name: postgres-pagos
+    restart: unless-stopped
+    ports:
+      - '54322:5432'
+    environment:
+      POSTGRES_DB: pagos_db
+      POSTGRES_USER: pagos_user
+      POSTGRES_PASSWORD: 'pagos123.'
+    volumes:
+      - postgres_pagos_data:/var/lib/postgresql/data
+      - ./pulsar-manager/sql/pagos_schema.sql:/docker-entrypoint-initdb.d/pagos-schema.sql:ro
+    networks:
+      - sidecar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pagos_user -d pagos_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Campanias Microservice Database
+  postgres-campanias:
+    image: postgres:15-alpine
+    container_name: postgres-campanias
+    restart: unless-stopped
+    ports:
+      - '54323:5432'
+    environment:
+      POSTGRES_DB: campanias_db
+      POSTGRES_USER: campanias_user
+      POSTGRES_PASSWORD: 'campanias123.'
+    volumes:
+      - postgres_campanias_data:/var/lib/postgresql/data
+      - ./pulsar-manager/sql/campanias_schema.sql:/docker-entrypoint-initdb.d/campanias-schema.sql:ro
+    networks:
+      - sidecar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campanias_user -d campanias_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   zookeeper:
     image: apachepulsar/pulsar:latest
@@ -84,7 +161,7 @@ services:
     container_name: pulsar-manager
     restart: unless-stopped
     depends_on:
-      - postgres
+      - postgres-core
       - broker
     ports:
       - '9527:9527'
@@ -103,8 +180,10 @@ services:
     restart: unless-stopped
     entrypoint: ["/bin/bash", "/src/entrypoint.sh"]
     depends_on:
-      - broker
-      - postgres
+      postgres-core:
+        condition: service_healthy
+      broker:
+        condition: service_started
     ports:
       - '5000:5000'
     environment:
@@ -112,8 +191,9 @@ services:
       ALPESPARTNERS_ADDRESS: 'alpespartner'
       PULSAR_ADDRESS: 'broker'
       BROKER_HOST: 'broker'
-      DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
-      DATABASE_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
+      # Core database for event sourcing and shared infrastructure
+      DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
+      DATABASE_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
       TOPIC_COMANDOS_CAMPANIAS: 'persistent://public/default/comandos.campanias'
       TOPIC_EVENTOS_CAMPANIAS: 'persistent://public/default/eventos.campanias'
@@ -138,13 +218,23 @@ services:
     container_name: campanias
     restart: unless-stopped
     depends_on:
-      - broker
-      - postgres
+      postgres-campanias:
+        condition: service_healthy
+      postgres-core:
+        condition: service_healthy
+      broker:
+        condition: service_started
+    ports:
+      - '5001:5000'  # Different port for campanias microservice
     environment:
       SERVICE_MODULE: 'campanias'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
-      DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
+      # Campanias specific database
+      DB_URL: 'postgresql+psycopg2://campanias_user:campanias123.@postgres-campanias:5432/campanias_db'
+      # Core database for event sourcing (shared)
+      CORE_DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       TOPIC_EVENTOS_CAMPANIAS: 'persistent://public/default/eventos.campanias'
+      TOPIC_COMANDOS_CAMPANIAS: 'persistent://public/default/comandos.campanias'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/app/src'
       # Pulsar publisher retry tuning
@@ -165,12 +255,23 @@ services:
     container_name: cliente
     restart: unless-stopped
     depends_on:
-      - broker
-      - postgres
+      postgres-cliente:
+        condition: service_healthy
+      postgres-core:
+        condition: service_healthy
+      broker:
+        condition: service_started
+    ports:
+      - '5002:5000'  # Different port for cliente microservice
     environment:
       SERVICE_MODULE: 'cliente'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
-      DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
+      # Cliente specific database
+      DB_URL: 'postgresql+psycopg2://cliente_user:cliente123.@postgres-cliente:5432/cliente_db'
+      # Core database for event sourcing (shared)
+      CORE_DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
+      TOPIC_EVENTOS_CLIENTE: 'persistent://public/default/eventos.cliente'
+      TOPIC_COMANDOS_CLIENTE: 'persistent://public/default/comandos.cliente'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/app/src'
       # Pulsar publisher retry tuning
@@ -191,12 +292,23 @@ services:
     container_name: pagos
     restart: unless-stopped
     depends_on:
-      - broker
-      - postgres
+      postgres-pagos:
+        condition: service_healthy
+      postgres-core:
+        condition: service_healthy
+      broker:
+        condition: service_started
+    ports:
+      - '5003:5000'  # Different port for pagos microservice
     environment:
       SERVICE_MODULE: 'pagos'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
-      DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
+      # Pagos specific database
+      DB_URL: 'postgresql+psycopg2://pagos_user:pagos123.@postgres-pagos:5432/pagos_db'
+      # Core database for event sourcing (shared)
+      CORE_DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
+      TOPIC_EVENTOS_PAGOS: 'persistent://public/default/eventos.pagos'
+      TOPIC_COMANDOS_PAGOS: 'persistent://public/default/comandos.pagos'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/app/src'
       # Pulsar publisher retry tuning
@@ -210,6 +322,46 @@ services:
       - sidecar
       - pulsar
 
+  # ========================================
+  # BFF (Backend For Frontend) Service
+  # ========================================
+  bff:
+    build:
+      context: .
+      dockerfile: alpespartners.Dockerfile
+    container_name: bff
+    restart: unless-stopped
+    depends_on:
+      - alpespartner
+      - campanias
+      - cliente
+      - pagos
+    ports:
+      - '8000:8000'  # BFF main port
+    environment:
+      SERVICE_MODULE: 'bff'
+      # Microservices URLs for HTTP communication
+      CAMPANIAS_SERVICE_URL: 'http://campanias:5000'
+      CLIENTE_SERVICE_URL: 'http://cliente:5000'
+      PAGOS_SERVICE_URL: 'http://pagos:5000'
+      CORE_SERVICE_URL: 'http://alpespartner:5000'
+      # BFF Configuration
+      BFF_HOST: '0.0.0.0'
+      BFF_PORT: '8000'
+      BFF_DEBUG: 'false'
+      BFF_REQUEST_TIMEOUT: '30'
+      BFF_MAX_RETRIES: '3'
+      BFF_RETRY_DELAY: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: '/app/src'
+    networks:
+      - sidecar
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   newman:
     image: postman/newman:alpine
     container_name: newman
@@ -222,7 +374,14 @@ services:
       - sidecar
 
 volumes:
-  postgres_data:
+  postgres_core_data:
+    driver: local
+  postgres_cliente_data:
+    driver: local
+  postgres_pagos_data:
+    driver: local
+  postgres_campanias_data:
+    driver: local
 
 networks:
   pulsar:
