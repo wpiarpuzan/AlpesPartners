@@ -50,7 +50,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Pagos Microservice Database
+  # Pagos / Campañas Microservice Database
   postgres-pagos:
     image: postgres:15-alpine
     container_name: postgres-pagos
@@ -58,38 +58,17 @@ services:
     ports:
       - '54322:5432'
     environment:
-      POSTGRES_DB: pagos_db
-      POSTGRES_USER: pagos_user
-      POSTGRES_PASSWORD: 'pagos123.'
+      POSTGRES_DB: pagos_campanias_db
+      POSTGRES_USER: pagos_clientes_user
+      POSTGRES_PASSWORD: 'pagos_clientes123.'
     volumes:
       - postgres_pagos_data:/var/lib/postgresql/data
       - ./pulsar-manager/sql/pagos_schema.sql:/docker-entrypoint-initdb.d/pagos-schema.sql:ro
-    networks:
-      - sidecar
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pagos_user -d pagos_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Campanias Microservice Database
-  postgres-campanias:
-    image: postgres:15-alpine
-    container_name: postgres-campanias
-    restart: unless-stopped
-    ports:
-      - '54323:5432'
-    environment:
-      POSTGRES_DB: campanias_db
-      POSTGRES_USER: campanias_user
-      POSTGRES_PASSWORD: 'campanias123.'
-    volumes:
-      - postgres_campanias_data:/var/lib/postgresql/data
       - ./pulsar-manager/sql/campanias_schema.sql:/docker-entrypoint-initdb.d/campanias-schema.sql:ro
     networks:
       - sidecar
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U campanias_user -d campanias_db"]
+      test: ["CMD-SHELL", "pg_isready -U pagos_user -d pagos_db"]
       interval: 30s
       timeout: 10s
       retries: 3
