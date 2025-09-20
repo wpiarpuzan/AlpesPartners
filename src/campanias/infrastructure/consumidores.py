@@ -10,22 +10,32 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
 PULSAR_BROKER_URL = os.environ.get('PULSAR_BROKER_URL')
-TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos-pagos-json'
+# Prefer the canonical topic used by the pagos publisher; allow override from env
+TOPIC_EVENTOS_PAGOS = os.environ.get('TOPIC_EVENTOS_PAGOS', 'persistent://public/default/eventos.pagos')
+
 
 def suscribirse_a_eventos_pagos():
-    client = pulsar.Client(PULSAR_BROKER_URL)
+    client = None
     consumer = None
     for attempt in range(10):
         try:
+            # Create a fresh client each attempt to avoid stale/broken connections
+            client = pulsar.Client(PULSAR_BROKER_URL)
             consumer = client.subscribe(
                 TOPIC_EVENTOS_PAGOS,
                 subscription_name="campanias-sub-eventos-pagos",
                 consumer_type=ConsumerType.Shared,
                 initial_position=pulsar.InitialPosition.Earliest,
             )
+            logging.info(f"[CAMPANIAS] Suscripción a {TOPIC_EVENTOS_PAGOS} establecida (attempt {attempt+1})")
             break
         except Exception as e:
             logging.warning(f"Intento {attempt+1} fallido al suscribirse a {TOPIC_EVENTOS_PAGOS}: {e}")
+            try:
+                if client is not None:
+                    client.close()
+            except Exception:
+                pass
             time.sleep(2 ** attempt)
     if consumer is None:
         raise Exception(f"No se pudo suscribir a {TOPIC_EVENTOS_PAGOS} después de varios intentos")

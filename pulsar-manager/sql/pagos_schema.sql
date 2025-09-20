@@ -365,3 +365,31 @@ COMMENT ON TABLE commission_rates IS 'Configuración de tasas de comisión por p
 
 -- Mensaje de finalización
 SELECT 'Pagos Microservice Database Schema creado exitosamente' AS status;
+
+-- ========================================
+-- TABLAS ADICIONALES REQUERIDAS POR LA APLICACIÓN
+-- (Event Store y proyección campanias_view usadas por fallback/instrumentación)
+-- Estas tablas se agregan de forma no destructiva para que una instalación nueva
+-- cree automáticamente las tablas necesarias cuando se inicie el contenedor.
+-- ========================================
+
+CREATE TABLE IF NOT EXISTS event_store (
+    id SERIAL PRIMARY KEY,
+    aggregate_id VARCHAR(255) NOT NULL,
+    aggregate_type VARCHAR(255),
+    type VARCHAR(255) NOT NULL,
+    payload TEXT,
+    occurred_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pagos_event_store_aggregate_id ON event_store(aggregate_id);
+CREATE INDEX IF NOT EXISTS idx_pagos_event_store_type ON event_store(type);
+
+-- Proyección local utilizada por consumidores para el flujo E2E (campanias state)
+CREATE TABLE IF NOT EXISTS campanias_view (
+    id VARCHAR(255) PRIMARY KEY,
+    id_cliente VARCHAR(255),
+    estado VARCHAR(64),
+    payload JSONB,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

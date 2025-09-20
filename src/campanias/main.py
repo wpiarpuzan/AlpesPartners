@@ -25,6 +25,8 @@ def try_create_app(module_name: str):
     bp = getattr(mod, 'bp', None) or getattr(mod, 'blueprint', None)
     if bp is not None:
         from flask import Flask
+        import threading
+        import logging
         def factory():
             app = Flask(__name__)
             # initialize shared DB (so repositories using alpespartners.config.db.db work)
@@ -43,6 +45,31 @@ def try_create_app(module_name: str):
             except Exception:
                 pass
             app.register_blueprint(bp)
+            # If requested, start local background consumers for this module.
+            try:
+                if os.environ.get('START_CONSUMERS', '0') == '1':
+                    # Try to import the module's consumidores and start known functions
+                    try:
+                        cons_mod = importlib.import_module(f"{module_name}.infraestructura.consumidores")
+                    except Exception:
+                        try:
+                            cons_mod = importlib.import_module(f"{module_name}.infrastructure.consumidores")
+                        except Exception:
+                            cons_mod = None
+                    if cons_mod is not None:
+                        fn = getattr(cons_mod, 'suscribirse_a_eventos_pagos', None) or getattr(cons_mod, 'run', None)
+                        if callable(fn):
+                            def _run_consumer():
+                                try:
+                                    logging.info(f"[LOCAL-CONSUMER] Starting consumer for {module_name}")
+                                    fn()
+                                except Exception:
+                                    logging.exception(f"[LOCAL-CONSUMER] Consumer for {module_name} failed")
+                            t = threading.Thread(target=_run_consumer, daemon=True)
+                            t.start()
+            except Exception:
+                # Non-fatal: continue serving the Flask app even if consumer thread fails to start
+                logging.exception('Failed to start local consumers')
             try:
                 print('App url_map:')
                 print(app.url_map)

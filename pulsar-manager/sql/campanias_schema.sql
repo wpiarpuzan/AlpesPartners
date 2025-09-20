@@ -431,6 +431,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ========================================
+-- VISTA / TABLA PROYECTADA campanias_view
+-- (Required by microservice consumers and tests)
+-- ========================================
+CREATE TABLE IF NOT EXISTS campanias_view (
+    id varchar(255) PRIMARY KEY,
+    id_cliente varchar(255),
+    estado varchar(64),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- ========================================
 -- TRIGGERS
 -- ========================================
 

@@ -219,7 +219,7 @@ services:
     restart: unless-stopped
     depends_on:
       - broker
-      - postgres
+      - postgres-campanias
     ports:
       - '5001:5000'
     command: ["python", "-m", "campanias.main"]
@@ -227,6 +227,7 @@ services:
       SERVICE_MODULE: 'campanias'
       PORT: '5000'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
+      START_CONSUMERS: '1'
       # Campanias specific database
       DB_URL: 'postgresql+psycopg2://campanias_user:campanias123.@postgres-campanias:5432/campanias_db'
       # Core database for event sourcing (shared)
@@ -254,7 +255,7 @@ services:
     restart: unless-stopped
     depends_on:
       - broker
-      - postgres
+      - postgres-cliente
     ports:
       - '5003:5000'
     command: ["python", "-m", "cliente.main"]
@@ -289,7 +290,7 @@ services:
     restart: unless-stopped
     depends_on:
       - broker
-      - postgres
+      - postgres-pagos
     ports:
       - '5002:5000'
     command: ["python", "-m", "pagos.main"]

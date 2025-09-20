@@ -92,6 +92,52 @@ class CampaniasService:
 
 
 def crear_campania_cmd(data):
+    # Debug: log incoming data shape to troubleshoot E2E failures
+    try:
+        # use print() to ensure container stdout/stderr captures the debug info
+        print('---- DEBUG crear_campania_cmd payload type ----')
+        print(type(data))
+        print('---- DEBUG crear_campania_cmd payload repr ----')
+        try:
+            print(repr(data))
+        except Exception:
+            print(str(data))
+        print('---- DEBUG crear_campania_cmd keys(if dict) ----')
+        try:
+            if isinstance(data, dict):
+                print(list(data.keys()))
+            else:
+                print('not-a-dict')
+        except Exception as e:
+            print('error listing keys:', e)
+    except Exception:
+        pass
+    # Also persist debug info to a file so we can inspect it even when docker logs are awkward
+    try:
+        log_path = '/tmp/campanias_debug.log'
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write('\n---- DEBUG servicio.crear_campania_cmd ----\n')
+            from datetime import datetime
+            f.write(f'timestamp: {datetime.utcnow().isoformat()}Z\n')
+            try:
+                f.write('payload_type: ' + str(type(data)) + '\n')
+            except Exception:
+                pass
+            try:
+                f.write('payload_repr:\n')
+                f.write(repr(data) + '\n')
+            except Exception:
+                try:
+                    f.write(str(data) + '\n')
+                except Exception:
+                    pass
+            try:
+                if isinstance(data, dict):
+                    f.write('keys: ' + str(list(data.keys())) + '\n')
+            except Exception:
+                pass
+    except Exception:
+        pass
     idCampania = data.get('idCampania')
     idCliente = data.get('idCliente')
     itinerario = data.get('itinerario')
