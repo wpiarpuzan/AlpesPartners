@@ -89,10 +89,10 @@ services:
     networks:
       - sidecar
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U campanias_user -d campanias_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "/bin/sh -c \"pg_isready -U campanias_user -d campanias_db || exit 1\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   zookeeper:
     image: apachepulsar/pulsar:latest
@@ -220,6 +220,8 @@ services:
     depends_on:
       - broker
       - postgres-campanias
+    # Use service_healthy condition where supported by Compose v2 "depends_on" with condition
+    # Note: docker compose v2+ will honor 'condition: service_healthy' only in certain compatibility modes.
     ports:
       - '5001:5000'
     command: ["python", "-m", "campanias.main"]
