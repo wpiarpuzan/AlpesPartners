@@ -1,11 +1,8 @@
-version: '3.8'
-
 services:
   # ========================================
   # POSTGRESQL DATABASES - One per microservice
   # ========================================
-  
-  # Core AlpesPartners Database (Event Store, Outbox, System Config)
+
   postgres-core:
     image: postgres:15-alpine
     container_name: postgres-core
@@ -20,15 +17,13 @@ services:
       - postgres_core_data:/var/lib/postgresql/data
       - ./pulsar-manager/sql/alpespartners_core_schema.sql:/docker-entrypoint-initdb.d/01-core-schema.sql:ro
       - ./pulsar-manager/sql/pulsar_manager_tables.sql:/docker-entrypoint-initdb.d/02-pulsar-manager.sql:ro
-    networks:
-      - sidecar
+    networks: [sidecar]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d alpespartners_core"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Cliente Microservice Database
   postgres-cliente:
     image: postgres:15-alpine
     container_name: postgres-cliente
@@ -42,15 +37,13 @@ services:
     volumes:
       - postgres_cliente_data:/var/lib/postgresql/data
       - ./pulsar-manager/sql/cliente_schema.sql:/docker-entrypoint-initdb.d/cliente-schema.sql:ro
-    networks:
-      - sidecar
+    networks: [sidecar]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cliente_user -d cliente_db"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Pagos Microservice Database
   postgres-pagos:
     image: postgres:15-alpine
     container_name: postgres-pagos
@@ -64,15 +57,13 @@ services:
     volumes:
       - postgres_pagos_data:/var/lib/postgresql/data
       - ./pulsar-manager/sql/pagos_schema.sql:/docker-entrypoint-initdb.d/pagos-schema.sql:ro
-    networks:
-      - sidecar
+    networks: [sidecar]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pagos_user -d pagos_db"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Campanias Microservice Database
   postgres-campanias:
     image: postgres:15-alpine
     container_name: postgres-campanias
@@ -86,75 +77,97 @@ services:
     volumes:
       - postgres_campanias_data:/var/lib/postgresql/data
       - ./pulsar-manager/sql/campanias_schema.sql:/docker-entrypoint-initdb.d/campanias-schema.sql:ro
-    networks:
-      - sidecar
+    networks: [sidecar]
     healthcheck:
       test: ["CMD-SHELL", "/bin/sh -c \"pg_isready -U campanias_user -d campanias_db || exit 1\""]
       interval: 10s
       timeout: 5s
       retries: 10
 
+  # ========================================
+  # Pulsar cluster (low-memory footprint)
+  # ========================================
+
   zookeeper:
     image: apachepulsar/pulsar:latest
     container_name: zookeeper
     restart: unless-stopped
-    command: |
-      bash -lc "bin/apply-config-from-env.py conf/zookeeper.conf && bin/generate-zookeeper-config.sh conf/zookeeper.conf && exec bin/pulsar zookeeper"
-    networks:
-      - pulsar
+    command: >
+      bash -lc "bin/apply-config-from-env.py conf/zookeeper.conf &&
+                bin/generate-zookeeper-config.sh conf/zookeeper.conf &&
+                exec bin/pulsar zookeeper"
+    environment:
+      PULSAR_GC: "-XX:+UseG1GC"
+      # bajar memoria para ZK
+      PULSAR_MEM: "-Xms256m -Xmx384m -XX:MaxDirectMemorySize=256m"
+    ulimits:
+      nofile: { soft: 10000, hard: 10000 }
+    networks: [pulsar]
 
   pulsar-init:
     image: apachepulsar/pulsar:latest
     container_name: pulsar-init
-    restart: 'no'
-    command: |
-      bash -lc "bin/pulsar initialize-cluster-metadata --cluster cluster-a --zookeeper zookeeper:2181 --configuration-store zookeeper:2181 --web-service-url http://broker:8080 --broker-service-url pulsar://broker:6650"
-    depends_on:
-      - zookeeper
-    networks:
-      - pulsar
+    restart: "no"
+    command: >
+      bash -lc "bin/pulsar initialize-cluster-metadata
+                --cluster cluster-a
+                --zookeeper zookeeper:2181
+                --configuration-store zookeeper:2181
+                --web-service-url http://broker:8080
+                --broker-service-url pulsar://broker:6650"
+    depends_on: [zookeeper]
+    networks: [pulsar]
 
   bookie:
     image: apachepulsar/pulsar:latest
     container_name: bookie
     restart: unless-stopped
-    command: |
-      bash -lc "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
+    command: >
+      bash -lc "bin/apply-config-from-env.py conf/bookkeeper.conf &&
+                exec bin/pulsar bookie"
+    environment:
+      PULSAR_GC: "-XX:+UseG1GC"
+      # memoria del proceso BookKeeper
+      BOOKIE_MEM: "-Xms256m -Xmx512m -XX:MaxDirectMemorySize=512m"
+      # configuración mínima necesaria
+      PULSAR_PREFIX_zookeeperServers: "zookeeper:2181"
+      PULSAR_PREFIX_metadataServiceUri: "zk://zookeeper:2181/ledgers"
+    ulimits:
+      nofile: { soft: 10000, hard: 10000 }
     depends_on:
       - zookeeper
       - pulsar-init
-    networks:
-      - pulsar
-    environment:
-      # Ensure BookKeeper (bookie) knows how to reach ZK (apply-config-from-env uses PULSAR_PREFIX_)
-      PULSAR_PREFIX_zookeeperServers: 'zookeeper:2181'
-      PULSAR_PREFIX_metadataServiceUri: 'zk://zookeeper:2181/ledgers'
+    networks: [pulsar]
 
   broker:
     image: apachepulsar/pulsar:latest
     container_name: broker
     restart: unless-stopped
-    command: |
-      bash -lc "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+    command: >
+      bash -lc "bin/apply-config-from-env.py conf/broker.conf &&
+                exec bin/pulsar broker"
+    environment:
+      PULSAR_GC: "-XX:+UseG1GC"
+      # bajar memoria del broker
+      PULSAR_MEM: "-Xms512m -Xmx768m -XX:MaxDirectMemorySize=512m"
+      # broker.conf vía apply-config-from-env.py
+      PULSAR_PREFIX_metadataServiceUri: "zk://zookeeper:2181/ledgers"
+      PULSAR_PREFIX_managedLedgerDefaultWriteQuorum: "1"
+      PULSAR_PREFIX_managedLedgerDefaultEnsembleSize: "1"
+      PULSAR_PREFIX_managedLedgerDefaultAckQuorum: "1"
+      PULSAR_PREFIX_advertisedListeners: "external:pulsar://broker:6650"
+      PULSAR_PREFIX_clusterName: "cluster-a"
+      PULSAR_PREFIX_zookeeperServers: "zookeeper:2181"
+      PULSAR_PREFIX_advertisedAddress: "broker"
+    ulimits:
+      nofile: { soft: 10000, hard: 10000 }
     depends_on:
       - zookeeper
       - bookie
     ports:
-      - '6650:6650'
-      - '8080:8080'
-    networks:
-      - pulsar
-    environment:
-      # These PULSAR_PREFIX_ env vars are read by apply-config-from-env.py
-      # to populate conf/broker.conf. Ensure clusterName and listeners are set.
-      PULSAR_PREFIX_metadataServiceUri: 'zk://zookeeper:2181/ledgers'
-      PULSAR_PREFIX_managedLedgerDefaultWriteQuorum: '1'
-      PULSAR_PREFIX_managedLedgerDefaultEnsembleSize: '1'
-      PULSAR_PREFIX_managedLedgerDefaultAckQuorum: '1'
-      PULSAR_PREFIX_advertisedListeners: 'external:pulsar://broker:6650'
-      PULSAR_PREFIX_clusterName: 'cluster-a'
-      PULSAR_PREFIX_zookeeperServers: 'zookeeper:2181'
-      PULSAR_PREFIX_advertisedAddress: 'broker'
+      - "6650:6650"
+      - "8080:8080"
+    networks: [pulsar]
 
   pulsar-manager:
     image: apachepulsar/pulsar-manager:latest
@@ -168,14 +181,14 @@ services:
       - '7750:7750'
     volumes:
       - ./pulsar-manager/resources/application.properties:/pulsar-manager/pulsar-manager/application.properties:ro
-    networks:
-      - sidecar
-      - pulsar
+    networks: [sidecar, pulsar]
+
+  # ========================================
+  # Microservicios
+  # ========================================
 
   alpespartner:
-    build:
-      context: .
-      dockerfile: alpespartners.Dockerfile
+    build: { context: ., dockerfile: alpespartners.Dockerfile }
     container_name: alpespartner
     restart: unless-stopped
     entrypoint: ["/bin/bash", "/src/entrypoint.sh"]
@@ -184,20 +197,17 @@ services:
         condition: service_healthy
       broker:
         condition: service_started
-    ports:
-      - '5000:5000'
+    ports: ['5000:5000']
     environment:
       START_CONSUMERS: '1'
       ALPESPARTNERS_ADDRESS: 'alpespartner'
       PULSAR_ADDRESS: 'broker'
       BROKER_HOST: 'broker'
-      # Core database for event sourcing and shared infrastructure
       DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       DATABASE_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
       TOPIC_COMANDOS_CAMPANIAS: 'persistent://public/default/comandos.campanias'
       TOPIC_EVENTOS_CAMPANIAS: 'persistent://public/default/eventos.campanias'
-      # Pulsar publisher retry tuning to tolerate broker startup
       PULSAR_CONNECT_ATTEMPTS: '30'
       PULSAR_CONNECT_DELAY: '1'
       PULSAR_PRODUCER_ATTEMPTS: '10'
@@ -207,125 +217,96 @@ services:
       PYTHONPATH: '/src'
       PYTHONDONTWRITEBYTECODE: '1'
       PYTHONUNBUFFERED: '1'
-    networks:
-      - sidecar
-      - pulsar
+    networks: [sidecar, pulsar]
 
   campanias:
-    build:
-      context: .
-      dockerfile: alpespartners.Dockerfile
+    build: { context: ., dockerfile: alpespartners.Dockerfile }
     container_name: campanias
     restart: unless-stopped
     depends_on:
       - broker
       - postgres-campanias
-    # Use service_healthy condition where supported by Compose v2 "depends_on" with condition
-    # Note: docker compose v2+ will honor 'condition: service_healthy' only in certain compatibility modes.
-    ports:
-      - '5001:5000'
+    ports: ['5001:5000']
     command: ["python", "-m", "campanias.main"]
     environment:
       SERVICE_MODULE: 'campanias'
       PORT: '5000'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
       START_CONSUMERS: '1'
-      # Campanias specific database
       DB_URL: 'postgresql+psycopg2://campanias_user:campanias123.@postgres-campanias:5432/campanias_db'
-      # Core database for event sourcing (shared)
       CORE_DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       TOPIC_EVENTOS_CAMPANIAS: 'persistent://public/default/eventos.campanias'
       TOPIC_COMANDOS_CAMPANIAS: 'persistent://public/default/comandos.campanias'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/src'
-      # Pulsar publisher retry tuning
       PULSAR_CONNECT_ATTEMPTS: '30'
       PULSAR_CONNECT_DELAY: '1'
       PULSAR_PRODUCER_ATTEMPTS: '10'
       PULSAR_PRODUCER_DELAY: '1'
       PULSAR_SEND_ATTEMPTS: '5'
       PULSAR_SEND_DELAY: '0.5'
-    networks:
-      - sidecar
-      - pulsar
+    networks: [sidecar, pulsar]
 
   cliente:
-    build:
-      context: .
-      dockerfile: alpespartners.Dockerfile
+    build: { context: ., dockerfile: alpespartners.Dockerfile }
     container_name: cliente
     restart: unless-stopped
     depends_on:
       - broker
       - postgres-cliente
-    ports:
-      - '5003:5000'
+    ports: ['5003:5000']
     command: ["python", "-m", "cliente.main"]
     environment:
       SERVICE_MODULE: 'cliente'
       PORT: '5000'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
-      # Cliente specific database
       DB_URL: 'postgresql+psycopg2://cliente_user:cliente123.@postgres-cliente:5432/cliente_db'
-      # Core database for event sourcing (shared)
       CORE_DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       TOPIC_EVENTOS_CLIENTE: 'persistent://public/default/eventos.cliente'
       TOPIC_COMANDOS_CLIENTE: 'persistent://public/default/comandos.cliente'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/src'
-      # Pulsar publisher retry tuning
       PULSAR_CONNECT_ATTEMPTS: '30'
       PULSAR_CONNECT_DELAY: '1'
       PULSAR_PRODUCER_ATTEMPTS: '10'
       PULSAR_PRODUCER_DELAY: '1'
       PULSAR_SEND_ATTEMPTS: '5'
       PULSAR_SEND_DELAY: '0.5'
-    networks:
-      - sidecar
-      - pulsar
+    networks: [sidecar, pulsar]
 
   pagos:
-    build:
-      context: .
-      dockerfile: alpespartners.Dockerfile
+    build: { context: ., dockerfile: alpespartners.Dockerfile }
     container_name: pagos
     restart: unless-stopped
     depends_on:
       - broker
       - postgres-pagos
-    ports:
-      - '5002:5000'
+    ports: ['5002:5000']
     command: ["python", "-m", "pagos.main"]
     environment:
       SERVICE_MODULE: 'pagos'
       PORT: '5000'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
-      # Pagos specific database
       DB_URL: 'postgresql+psycopg2://pagos_user:pagos123.@postgres-pagos:5432/pagos_db'
-      # Core database for event sourcing (shared)
       CORE_DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       TOPIC_EVENTOS_PAGOS: 'persistent://public/default/eventos.pagos'
       TOPIC_COMANDOS_PAGOS: 'persistent://public/default/comandos.pagos'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/src'
-      # Pulsar publisher retry tuning
       PULSAR_CONNECT_ATTEMPTS: '30'
       PULSAR_CONNECT_DELAY: '1'
       PULSAR_PRODUCER_ATTEMPTS: '10'
       PULSAR_PRODUCER_DELAY: '1'
       PULSAR_SEND_ATTEMPTS: '5'
       PULSAR_SEND_DELAY: '0.5'
-    networks:
-      - sidecar
-      - pulsar
+    networks: [sidecar, pulsar]
 
   # ========================================
-  # BFF (Backend For Frontend) Service
+  # BFF
   # ========================================
+
   bff:
-    build:
-      context: .
-      dockerfile: alpespartners.Dockerfile
+    build: { context: ., dockerfile: alpespartners.Dockerfile }
     container_name: bff
     restart: unless-stopped
     depends_on:
@@ -333,16 +314,13 @@ services:
       - campanias
       - cliente
       - pagos
-    ports:
-      - '8000:8000'  # BFF main port
+    ports: ['8000:8000']
     environment:
       SERVICE_MODULE: 'bff'
-      # Microservices URLs for HTTP communication
       CAMPANIAS_SERVICE_URL: 'http://campanias:5000'
       CLIENTE_SERVICE_URL: 'http://cliente:5000'
       PAGOS_SERVICE_URL: 'http://pagos:5000'
       CORE_SERVICE_URL: 'http://alpespartner:5000'
-      # BFF Configuration
       BFF_HOST: '0.0.0.0'
       BFF_PORT: '8000'
       BFF_DEBUG: 'false'
@@ -351,8 +329,7 @@ services:
       BFF_RETRY_DELAY: '1'
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: '/app/src'
-    networks:
-      - sidecar
+    networks: [sidecar]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -367,18 +344,13 @@ services:
     command: ["sleep 3600"]
     volumes:
       - ./:/etc/newman
-    networks:
-      - sidecar
+    networks: [sidecar]
 
 volumes:
-  postgres_core_data:
-    driver: local
-  postgres_cliente_data:
-    driver: local
-  postgres_pagos_data:
-    driver: local
-  postgres_campanias_data:
-    driver: local
+  postgres_core_data: {}
+  postgres_cliente_data: {}
+  postgres_pagos_data: {}
+  postgres_campanias_data: {}
 
 networks:
   pulsar:
