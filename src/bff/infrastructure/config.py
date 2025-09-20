@@ -24,8 +24,10 @@ class DIContainer:
     
     def __init__(self):
         # Configuración de URLs de servicios backend
-        self.alpespartners_base_url = os.environ.get('ALPESPARTNERS_SERVICE_URL', 'http://localhost:5000')
-        self.http_timeout = int(os.getenv('BFF_HTTP_TIMEOUT', '30'))
+        self.alpespartners_cliente_base_url = os.environ.get('ALPESPARTNERS_CLIENTE_SERVICE_URL', 'http://localhost:5000')
+        self.alpespartners_pago_base_url = os.environ.get('ALPESPARTNERS_PAGO_SERVICE_URL', 'http://localhost:5001')
+        self.alpespartners_campania_base_url = os.environ.get('ALPESPARTNERS_CAMPANIA_SERVICE_URL', 'http://localhost:5002')
+        self.http_timeout = int(os.getenv('BFF_HTTP_TIMEOUT', '120'))
         
         # Servicios de infraestructura
         self._logger_service = PythonLoggerAdapter("bff")
@@ -33,13 +35,13 @@ class DIContainer:
         
         # Clientes HTTP para servicios backend
         self._cliente_http_client = HttpClientFactory.create_cliente_client(
-            self.alpespartners_base_url, self.http_timeout
+            self.alpespartners_cliente_base_url, self.http_timeout
         )
         self._pago_http_client = HttpClientFactory.create_pago_client(
-            self.alpespartners_base_url, self.http_timeout
+            self.alpespartners_pago_base_url, self.http_timeout
         )
         self._campania_http_client = HttpClientFactory.create_campania_client(
-            self.alpespartners_base_url, self.http_timeout
+            self.alpespartners_campania_base_url, self.http_timeout
         )
         
         # Adaptadores de servicios backend (usando clientes HTTP)

@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     CONSTRAINT chk_comision_positiva CHECK (comision_valor >= 0),
     CONSTRAINT chk_status_transaction CHECK (status IN ('ACTIVE', 'CANCELLED', 'REFUNDED')),
     CONSTRAINT chk_fee_percentage CHECK (fee_percentage >= 0 AND fee_percentage <= 1)
+<<<<<<< HEAD
 );
 
 -- ========================================
@@ -393,3 +394,6 @@ CREATE TABLE IF NOT EXISTS campanias_view (
     payload JSONB,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+=======
+);
+>>>>>>> bff

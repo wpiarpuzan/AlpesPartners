@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS campanias (
         (conversion_rate_target IS NULL OR conversion_rate_target BETWEEN 0 AND 1) AND
         (ctr_target IS NULL OR ctr_target BETWEEN 0 AND 1)
     )
+<<<<<<< HEAD
 );
 
 -- ========================================
@@ -528,3 +529,6 @@ COMMENT ON TABLE campaign_audiences IS 'Definición de audiencias objetivo para 
 
 -- Mensaje de finalización
 SELECT 'Campanias Microservice Database Schema creado exitosamente' AS status;
+=======
+);
+>>>>>>> bff
