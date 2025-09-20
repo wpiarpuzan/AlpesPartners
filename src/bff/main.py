@@ -25,7 +25,9 @@ def main():
     debug = os.getenv('BFF_DEBUG', 'False').lower() == 'true'
     
     # Configuración de servicios backend
-    alpespartners_url = os.environ['ALPESPARTNERS_SERVICE_URL']
+    alpespartners_cliente_url = os.environ['ALPESPARTNERS_CLIENTE_SERVICE_URL']
+    alpespartners_pago_url = os.environ['ALPESPARTNERS_PAGO_SERVICE_URL']
+    alpespartners_campania_url = os.environ['ALPESPARTNERS_CAMPANIA_SERVICE_URL']
     http_timeout = os.getenv('BFF_HTTP_TIMEOUT', '30')
     
     print(f"""
@@ -33,8 +35,12 @@ def main():
     
     📍 BFF URL: http://{host}:{port}
     🔧 Modo Debug: {debug}
-    🌐 Backend URL: {alpespartners_url}
-    ⏱️  HTTP Timeout: {http_timeout}s
+    🌐 Backend URL: {
+        "Cliente": alpespartners_cliente_url,
+        "Pago": alpespartners_pago_url,
+        "Campaña": alpespartners_campania_url
+    }
+    ⏱️ Timeout HTTP: {http_timeout} segundos
     
     Endpoints principales:
     • Health: http://{host}:{port}/api/v1/health
