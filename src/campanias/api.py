@@ -7,6 +7,15 @@ bp = Blueprint('campanias', __name__, url_prefix='/campanias')
 
 @bp.route('/comandos/crear', methods=['POST'])
 def crear_campania():
+    # Debug: print headers and raw body to help diagnose JSON parsing issues
+    try:
+        print('---- CAMPANIAS incoming Headers (top-level api) ----')
+        print(dict(request.headers))
+        print('---- CAMPANIAS raw body (top-level api) ----')
+        print(request.get_data(as_text=True))
+    except Exception as e:
+        print('Error logging request data (top-level api):', e)
+
     data = request.get_json()
     if not data:
         return jsonify({'error': 'JSON body required'}), 400

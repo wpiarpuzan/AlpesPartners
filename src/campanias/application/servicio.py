@@ -104,7 +104,16 @@ def crear_campania_cmd(data):
         'itinerario': itinerario
     }
     append_event(idCampania, 'CampaniaCreada.v1', event_data)
-    publish_event('CampaniaCreada.v1', event_data)
+    # Persist event first and update projection. Publishing to Pulsar is best-effort;
+    # if Pulsar is temporarily unavailable we should still return success to the API
+    # because the local state and event store are already updated.
+    try:
+        publish_event('CampaniaCreada.v1', event_data)
+    except Exception as e:
+        # Log and continue; the system's consumers can recover the missing integration
+        # publication later or the publisher will retry when available.
+        import logging
+        logging.warning(f"publish_event failed (continuing): {e}")
     repo = CampaniaViewRepo(db.session)
     repo.upsert(idCampania, idCliente, EstadoCampania.PENDIENTE.value)
     return {'status': 'accepted', 'idCampania': idCampania}

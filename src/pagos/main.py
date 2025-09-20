@@ -22,6 +22,12 @@ def try_create_app(module_name: str):
         from flask import Flask
         def factory():
             app = Flask(__name__)
+            # initialize shared DB so repositories using alpespartners.config.db.db work
+            try:
+                from alpespartners.config.db import init_db
+                init_db(app)
+            except Exception:
+                pass
             app.register_blueprint(bp)
             return app
         return factory

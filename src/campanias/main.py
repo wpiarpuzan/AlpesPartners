@@ -27,7 +27,27 @@ def try_create_app(module_name: str):
         from flask import Flask
         def factory():
             app = Flask(__name__)
+            # initialize shared DB (so repositories using alpespartners.config.db.db work)
+            try:
+                from alpespartners.config.db import init_db
+                init_db(app)
+            except Exception:
+                pass
+            # debug: print which blueprint/module file was loaded
+            try:
+                print('Registering blueprint from module:', getattr(bp, '__module__', None))
+                import inspect
+                mod = inspect.getmodule(bp)
+                if mod is not None and hasattr(mod, '__file__'):
+                    print('Blueprint module file:', mod.__file__)
+            except Exception:
+                pass
             app.register_blueprint(bp)
+            try:
+                print('App url_map:')
+                print(app.url_map)
+            except Exception:
+                pass
             return app
         return factory
     return None

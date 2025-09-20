@@ -140,13 +140,17 @@ services:
     depends_on:
       - broker
       - postgres
+    ports:
+      - '5001:5000'
+    command: ["python", "-m", "campanias.main"]
     environment:
       SERVICE_MODULE: 'campanias'
+      PORT: '5000'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
       DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
       TOPIC_EVENTOS_CAMPANIAS: 'persistent://public/default/eventos.campanias'
       PYTHONUNBUFFERED: '1'
-      PYTHONPATH: '/app/src'
+      PYTHONPATH: '/src'
       # Pulsar publisher retry tuning
       PULSAR_CONNECT_ATTEMPTS: '30'
       PULSAR_CONNECT_DELAY: '1'
@@ -167,12 +171,16 @@ services:
     depends_on:
       - broker
       - postgres
+    ports:
+      - '5003:5000'
+    command: ["python", "-m", "cliente.main"]
     environment:
       SERVICE_MODULE: 'cliente'
+      PORT: '5000'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
       DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
       PYTHONUNBUFFERED: '1'
-      PYTHONPATH: '/app/src'
+      PYTHONPATH: '/src'
       # Pulsar publisher retry tuning
       PULSAR_CONNECT_ATTEMPTS: '30'
       PULSAR_CONNECT_DELAY: '1'
@@ -193,12 +201,16 @@ services:
     depends_on:
       - broker
       - postgres
+    ports:
+      - '5002:5000'
+    command: ["python", "-m", "pagos.main"]
     environment:
       SERVICE_MODULE: 'pagos'
+      PORT: '5000'
       PULSAR_BROKER_URL: 'pulsar://broker:6650'
       DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres:5432/alpespartner'
       PYTHONUNBUFFERED: '1'
-      PYTHONPATH: '/app/src'
+      PYTHONPATH: '/src'
       # Pulsar publisher retry tuning
       PULSAR_CONNECT_ATTEMPTS: '30'
       PULSAR_CONNECT_DELAY: '1'

@@ -7,6 +7,15 @@ bp = Blueprint('campanias', __name__, url_prefix='/campanias')
 
 @bp.route('/comandos/crear', methods=['POST'])
 def crear_campania():
+    # debug: log raw body and headers to diagnose JSON parsing issues
+    # Debug: print headers and raw body so Docker/container logs capture them
+    try:
+        print('---- CAMPANIAS incoming Headers ----')
+        print(dict(request.headers))
+        print('---- CAMPANIAS raw body ----')
+        print(request.get_data(as_text=True))
+    except Exception as e:
+        print('Error logging request data:', e)
     data = request.get_json()
     if not data:
         return jsonify({'error': 'JSON body required'}), 400
