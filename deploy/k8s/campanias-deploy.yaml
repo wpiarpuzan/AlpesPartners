@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campanias
+  namespace: alpes
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: campanias }
+  template:
+    metadata:
+      labels: { app: campanias }
+    spec:
+      containers:
+        - name: campanias
+          image: us-central1-docker.pkg.dev/alpespartner/alp-repo/campanias:v1
+          ports: [{ containerPort: 5000 }]
+            # ...existing code...
+          env:
+            - name: SERVICE_MODULE
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: SERVICE_MODULE
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PORT
+            - name: PULSAR_BROKER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PULSAR_BROKER_URL
+            - name: START_CONSUMERS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: START_CONSUMERS
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: DB_URL
+            - name: CORE_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: CORE_DB_URL
+            - name: TOPIC_EVENTOS_CAMPANIAS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: TOPIC_EVENTOS_CAMPANIAS
+            - name: TOPIC_COMANDOS_CAMPANIAS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: TOPIC_COMANDOS_CAMPANIAS
+            - name: PYTHONUNBUFFERED
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PYTHONUNBUFFERED
+            - name: PYTHONPATH
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PYTHONPATH
+            - name: PULSAR_CONNECT_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PULSAR_CONNECT_ATTEMPTS
+            - name: PULSAR_CONNECT_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PULSAR_CONNECT_DELAY
+            - name: PULSAR_PRODUCER_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PULSAR_PRODUCER_ATTEMPTS
+            - name: PULSAR_PRODUCER_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PULSAR_PRODUCER_DELAY
+            - name: PULSAR_SEND_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PULSAR_SEND_ATTEMPTS
+            - name: PULSAR_SEND_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-campanias
+                  key: PULSAR_SEND_DELAY
+  # ...existing code...
+            - name: DB_HOST
+              valueFrom: { configMapKeyRef: { name: alpes-config-campanias, key: DB_HOST } }
+            - name: DB_PORT
+              valueFrom: { configMapKeyRef: { name: alpes-config, key: DB_PORT } }
+            - name: DB_NAME
+              valueFrom: { secretKeyRef: { name: db-campanias-secret, key: POSTGRESQL_DATABASE } }
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: db-campanias-secret, key: POSTGRESQL_USERNAME } }
+            - name: DB_PASS
+              valueFrom: { secretKeyRef: { name: db-campanias-secret, key: POSTGRESQL_PASSWORD } }
+            - name: PULSAR_URL
+              valueFrom: { configMapKeyRef: { name: alpes-config, key: PULSAR_BINARY_URL } }
+          readinessProbe:
+            httpGet: { path: /health, port: 5000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10

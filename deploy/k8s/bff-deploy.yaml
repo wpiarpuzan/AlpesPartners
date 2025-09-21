@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bff
+  namespace: alpes
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: bff }
+  template:
+    metadata:
+      labels: { app: bff }
+    spec:
+      containers:
+        - name: bff
+          image: us-central1-docker.pkg.dev/alpespartner/alp-repo/bff:v1
+          ports: [{ containerPort: 5001 }]
+          # ...existing code...
+          env:
+            - name: SERVICE_MODULE
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: SERVICE_MODULE
+            - name: CAMPANIAS_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: CAMPANIAS_SERVICE_URL
+            - name: CLIENTE_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: CLIENTE_SERVICE_URL
+            - name: PAGOS_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: PAGOS_SERVICE_URL
+            - name: CORE_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: CORE_SERVICE_URL
+            - name: BFF_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: BFF_HOST
+            - name: BFF_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: BFF_PORT
+            - name: BFF_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: BFF_DEBUG
+            - name: BFF_REQUEST_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: BFF_REQUEST_TIMEOUT
+            - name: PYTHONUNBUFFERED
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: PYTHONUNBUFFERED
+            - name: PYTHONPATH
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-bff
+                  key: PYTHONPATH
+  # ...existing code...
+            - name: CLIENTE_URL
+              value: "http://cliente.alpes.svc.cluster.local:5000"
+            - name: CAMPANIAS_URL
+              value: "http://campanias.alpes.svc.cluster.local:5000"
+            - name: PAGOS_URL
+              value: "http://pagos.alpes.svc.cluster.local:5000"
+            - name: PULSAR_URL
+              valueFrom: { configMapKeyRef: { name: alpes-config, key: PULSAR_BINARY_URL } }
+          readinessProbe:
+            httpGet: { path: /health, port: 5001 }
+            initialDelaySeconds: 5
+            periodSeconds: 10

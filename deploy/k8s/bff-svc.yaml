@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bff
+  namespace: alpes
+spec:
+  selector: { app: bff }
+  ports: [{ port: 80, targetPort: 5001 }]
+  type: LoadBalancer

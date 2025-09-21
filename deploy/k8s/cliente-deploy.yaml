@@ -1,0 +1,113 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cliente
+  namespace: alpes
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: cliente }
+  template:
+    metadata:
+      labels: { app: cliente }
+    spec:
+      containers:
+        - name: cliente
+          image: us-central1-docker.pkg.dev/alpespartner/alp-repo/cliente:v1
+          ports: [{ containerPort: 5000 }]
+  # ...existing code...
+          env:
+            - name: SERVICE_MODULE
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: SERVICE_MODULE
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PORT
+            - name: PULSAR_BROKER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PULSAR_BROKER_URL
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: DB_URL
+            - name: CORE_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: CORE_DB_URL
+            - name: TOPIC_EVENTOS_CLIENTE
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: TOPIC_EVENTOS_CLIENTE
+            - name: TOPIC_COMANDOS_CLIENTE
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: TOPIC_COMANDOS_CLIENTE
+            - name: PYTHONUNBUFFERED
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PYTHONUNBUFFERED
+            - name: PYTHONPATH
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PYTHONPATH
+            - name: PULSAR_CONNECT_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PULSAR_CONNECT_ATTEMPTS
+            - name: PULSAR_CONNECT_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PULSAR_CONNECT_DELAY
+            - name: PULSAR_PRODUCER_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PULSAR_PRODUCER_ATTEMPTS
+            - name: PULSAR_PRODUCER_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PULSAR_PRODUCER_DELAY
+            - name: PULSAR_SEND_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PULSAR_SEND_ATTEMPTS
+            - name: PULSAR_SEND_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  name: alpes-config-cliente
+                  key: PULSAR_SEND_DELAY
+  # ...existing code...
+            - name: DB_HOST
+              valueFrom: { configMapKeyRef: { name: alpes-config, key: DB_HOST } }
+            - name: DB_PORT
+              valueFrom: { configMapKeyRef: { name: alpes-config, key: DB_PORT } }
+            - name: DB_NAME
+              valueFrom: { secretKeyRef: { name: db-cliente-secret, key: POSTGRESQL_DATABASE } }
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: db-cliente-secret, key: POSTGRESQL_USERNAME } }
+            - name: DB_PASS
+              valueFrom: { secretKeyRef: { name: db-cliente-secret, key: POSTGRESQL_PASSWORD } }
+            - name: PULSAR_URL
+              valueFrom: { configMapKeyRef: { name: alpes-config, key: PULSAR_BINARY_URL } }
+          readinessProbe:
+            httpGet: { path: /health, port: 5000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+

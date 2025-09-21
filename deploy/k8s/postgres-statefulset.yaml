@@ -1,0 +1,180 @@
+# ======= Postgres CLIENTE =======
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-cliente
+  namespace: alpes
+spec:
+  selector: { app: postgres-cliente }
+  ports: [{ name: pg, port: 5432, targetPort: 5432 }]
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-cliente
+  namespace: alpes
+spec:
+  serviceName: postgres-cliente
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres-cliente }
+  template:
+    metadata:
+      labels: { app: postgres-cliente }
+    spec:
+      securityContext:
+          fsGroup: 1001
+          fsGroupChangePolicy: Always
+      containers:
+        - name: postgres
+          image: bitnami/postgresql:16
+          ports: [{ containerPort: 5432, name: pg }]
+          envFrom:
+            - secretRef: { name: db-cliente-secret }  # POSTGRESQL_* variables          
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/postgresql
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests: { storage: 10Gi }
+
+# ======= Postgres PAGOS =======
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-pagos
+  namespace: alpes
+spec:
+  selector: { app: postgres-pagos }
+  ports: [{ name: pg, port: 5432, targetPort: 5432 }]
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-pagos
+  namespace: alpes
+spec:
+  serviceName: postgres-pagos
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres-pagos }
+  template:
+    metadata:
+      labels: { app: postgres-pagos }
+    spec:
+      securityContext:
+          fsGroup: 1001
+          fsGroupChangePolicy: Always
+      containers:
+        - name: postgres
+          image: bitnami/postgresql:16
+          ports: [{ containerPort: 5432, name: pg }]
+          envFrom:
+            - secretRef: { name: db-pagos-secret }
+          
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/postgresql
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests: { storage: 10Gi }
+# ======= Postgres CAMPANIAS =======
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-campanias
+  namespace: alpes
+spec:
+  selector: { app: postgres-campanias }
+  ports: [{ name: pg, port: 5432, targetPort: 5432 }]
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-campanias
+  namespace: alpes
+spec:
+  serviceName: postgres-campanias
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres-campanias }
+  template:
+    metadata:
+      labels: { app: postgres-campanias }
+    spec:
+      securityContext:
+          fsGroup: 1001
+          fsGroupChangePolicy: Always
+      containers:
+        - name: postgres
+          image: bitnami/postgresql:16
+          ports: [{ containerPort: 5432, name: pg }]
+          envFrom:
+            - secretRef: { name: db-campanias-secret }
+          
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/postgresql
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests: { storage: 10Gi }
+
+# ======= Postgres ALPESPARTNER =======
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-alpespartner
+  namespace: alpes
+spec:
+  selector: { app: postgres-alpespartner }
+  ports: [{ name: pg, port: 5432, targetPort: 5432 }]
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-alpespartner
+  namespace: alpes
+spec:
+  serviceName: postgres-alpespartner
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres-alpespartner }
+  template:
+    metadata:
+      labels: { app: postgres-alpespartner }
+    spec:
+      securityContext:
+          fsGroup: 1001
+          fsGroupChangePolicy: Always
+      containers:
+        - name: postgres
+          image: bitnami/postgresql:16
+          ports: [{ containerPort: 5432, name: pg }]
+          envFrom:
+            - secretRef: { name: db-alpespartner-secret }
+          
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/postgresql
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests: { storage: 10Gi }

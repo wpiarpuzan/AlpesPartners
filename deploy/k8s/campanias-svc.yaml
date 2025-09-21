@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: campanias
+  namespace: alpes
+spec:
+  selector: { app: campanias }
+  ports: [{ port: 5000, targetPort: 5000 }]
+  type: ClusterIP
