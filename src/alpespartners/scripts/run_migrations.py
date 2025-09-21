@@ -4,7 +4,23 @@ import time
 from urllib.parse import urlparse
 import psycopg2
 
-MIGRATIONS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'migrations')
+_HERE = os.path.dirname(__file__)
+# Candidate locations for migrations (relative to this script)
+_CANDIDATES = [
+    os.path.join(_HERE, '..', '..', '..', 'migrations'),
+    os.path.join(_HERE, '..', '..', 'migrations'),
+    os.path.join(_HERE, '..', '..', '..', '..', 'migrations'),
+    os.path.join(_HERE, '..', 'migrations'),
+]
+
+def find_migrations_dir():
+    for p in _CANDIDATES:
+        real = os.path.abspath(p)
+        if os.path.isdir(real):
+            return real
+    return None
+
+MIGRATIONS_DIR = find_migrations_dir()
 
 
 def get_db_url():
@@ -57,6 +73,10 @@ def main():
     print('DB reachable, applying migrations...')
     conn = psycopg2.connect(host=host, port=port, user=user, password=password, dbname=dbname)
     try:
+        # If migrations dir not found, log and skip
+        if not MIGRATIONS_DIR:
+            print('No migrations directory found; skipping migrations')
+            return 0
         # Apply SQL files in lexicographic order
         files = sorted([f for f in os.listdir(MIGRATIONS_DIR) if f.endswith('.sql')])
         for fname in files:
