@@ -314,6 +314,7 @@ services:
       - campanias
       - cliente
       - pagos
+    entrypoint: ["/bin/bash", "/src/entrypoint.sh"]
     ports: ['8000:8000']
     environment:
       SERVICE_MODULE: 'bff'
@@ -321,6 +322,9 @@ services:
       CLIENTE_SERVICE_URL: 'http://cliente:5000'
       PAGOS_SERVICE_URL: 'http://pagos:5000'
       CORE_SERVICE_URL: 'http://alpespartner:5000'
+      # Point BFF to the core DB so Flask can create outbox/processed_events tables.
+      DB_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
+      DATABASE_URL: 'postgresql+psycopg2://admin:admin10100101.@postgres-core:5432/alpespartners_core'
       BFF_HOST: '0.0.0.0'
       BFF_PORT: '8000'
       BFF_DEBUG: 'false'
@@ -328,7 +332,7 @@ services:
       BFF_MAX_RETRIES: '3'
       BFF_RETRY_DELAY: '1'
       PYTHONUNBUFFERED: '1'
-      PYTHONPATH: '/app/src'
+      PYTHONPATH: '/src'
     networks: [sidecar]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

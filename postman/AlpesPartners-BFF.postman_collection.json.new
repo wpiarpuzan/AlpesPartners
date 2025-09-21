@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "AlpesPartners BFF - Basic E2E",
+    "_postman_id": "alpespartners-bff-basic-e2e",
+    "description": "Collection to test BFF endpoints for a single service flow: create campaign -> create payment -> get campaign state.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Campaign",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+        },
+        "url": {
+          "raw": "{{BFF_URL}}/campanias/comandos/crear",
+          "host": ["{{BFF_URL}}"],
+          "path": ["campanias", "comandos", "crear"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create Campaign - status is 201 or 202', function() {",
+              "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+              "});",
+              "// save id if returned in body",
+              "try {",
+              "  var body = pm.response.json ? pm.response.json() : {};",
+              "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+              "} catch (e) { /* ignore */ }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Payment",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+        },
+        "url": { "raw": "{{BFF_URL}}/pagos/pagar", "host": ["{{BFF_URL}}"], "path": ["pagos", "pagar"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create Payment - status is 201 or 202', function() {",
+              "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+              "});",
+              "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+              "var max = 10; var i = 0;",
+              "function poll() {",
+              "  if (i >= max) {",
+              "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+              "    return;",
+              "  }",
+              "  i++;",
+              "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+              "    if (err || !res) { setTimeout(poll, 1000); return; }",
+              "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+              "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+              "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+              "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+              "      return;",
+              "    }",
+              "    setTimeout(poll, 1000);",
+              "  });",
+              "}",
+              "poll();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Campaign",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{BFF_URL}}/campanias/{{CAMPANIA_ID}}", "host": ["{{BFF_URL}}"], "path": ["campanias", "{{CAMPANIA_ID}}"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+              "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": []
+}
