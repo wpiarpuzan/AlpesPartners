@@ -26,7 +26,15 @@ class ClienteRepositorioSQLAlchemy:
     def agregar(self, cliente):
         # Implementación mínima: asume que la unidad de trabajo hace commit
         q = text("INSERT INTO clientes (id, nombre, email, fecha_registro, total_pagos) VALUES (:id, :nombre, :email, now(), 0)")
-        self._session.execute(q, {"id": getattr(cliente, 'id', None), "nombre": getattr(cliente, 'nombre', None), "email": getattr(cliente, 'email', None)})
+        # Ensure email is a plain string (some domain Email objects are not DB-adaptable)
+        email_val = getattr(cliente, 'email', None)
+        if email_val is None:
+            email_str = None
+        else:
+            # If it's an object with attribute 'address' prefer that
+            email_str = getattr(email_val, 'address', None) or str(email_val)
+
+        self._session.execute(q, {"id": getattr(cliente, 'id', None), "nombre": getattr(cliente, 'nombre', None), "email": email_str})
 
     def actualizar_totales_por_pago(self, cliente_id: str, fecha_pago: datetime) -> None:
         q = text("UPDATE clientes SET total_pagos = COALESCE(total_pagos, 0) + 1, ultimo_pago = :fecha WHERE id = :id")
