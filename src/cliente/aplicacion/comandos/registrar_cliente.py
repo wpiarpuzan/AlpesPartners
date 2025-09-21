@@ -31,6 +31,7 @@ class RegistrarClienteHandler(ComandoHandler):
 
         email = Email(address, dominio, es_empresarial)
         cliente = ClienteNatural(
+            id=uuid.UUID(comando.id),
             nombre=comando.nombre,
             email=email,
             cedula=Cedula(comando.cedula),
@@ -38,7 +39,6 @@ class RegistrarClienteHandler(ComandoHandler):
             fecha_registro=datetime.now(),
             total_pagos=0
         )
-        cliente._id = uuid.UUID(comando.id)
         
         UnidadTrabajoPuerto.registrar_batch(repo.agregar, cliente)
         UnidadTrabajoPuerto.savepoint()
