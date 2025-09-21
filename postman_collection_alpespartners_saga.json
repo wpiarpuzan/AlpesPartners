@@ -6,7 +6,8 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "baseUrlCampanias", "value": "http://localhost:5001" },
+    { "key": "baseUrlPagos", "value": "http://localhost:5002" },
     { "key": "campaniaId", "value": "camp-e2e-001" },
     { "key": "eventId", "value": "evt-1" }
   ],
@@ -18,9 +19,10 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\"idCampania\": \"{{campaniaId}}\", \"idCliente\": \"cli1\", \"itinerario\": [] }"
+          "raw": "{\"idCampania\":\"{{campaniaId}}\",\"idCliente\":\"cli1\",\"itinerario\":[] }",
+          "options": { "raw": { "language": "json" } }
         },
-        "url": "{{baseUrl}}/campanias/comandos/crear"
+        "url": "{{baseUrlCampanias}}/campanias/comandos/crear"
       },
       "event": [
         {
@@ -44,7 +46,7 @@
       "name": "2 - Check campaign initial state (PENDIENTE)",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/campanias/{{campaniaId}}"
+        "url": "{{baseUrlCampanias}}/campanias/{{campaniaId}}"
       },
       "event": [
         {
@@ -63,15 +65,16 @@
       ]
     },
     {
-      "name": "3 - Publish PagoConfirmado",
+      "name": "3 - Create Pago (publish PagoConfirmado)",
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\"module\": \"pagos\", \"type\": \"PagoConfirmado.v1\", \"data\": { \"idCampania\": \"{{campaniaId}}\", \"eventId\": \"{{eventId}}\" } }"
+          "raw": "{\"idPago\":\"pay-{{eventId}}\",\"idCampania\":\"{{campaniaId}}\",\"idCliente\":\"cli1\",\"monto\":100}",
+          "options": { "raw": { "language": "json" } }
         },
-        "url": "{{baseUrl}}/test/publish"
+  "url": "{{baseUrlPagos}}/comandos/crear"
       },
       "event": [
         {
@@ -89,7 +92,7 @@
       "name": "4 - Check campaign final state (APROBADA)",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/campanias/{{campaniaId}}"
+        "url": "{{baseUrlCampanias}}/campanias/{{campaniaId}}"
       },
       "event": [
         {
@@ -115,7 +118,7 @@
               "      return;",
               "    }",
               "    setTimeout(function(){",
-              "      pm.sendRequest({ url: pm.variables.get('baseUrl') + '/campanias/' + pm.variables.get('campaniaId'), method: 'GET' }, function (err, res) {",
+              "      pm.sendRequest({ url: pm.variables.get('baseUrlCampanias') + '/campanias/' + pm.variables.get('campaniaId'), method: 'GET' }, function (err, res) {",
               "        if (err) {",
               "          pm.test('poll request error', function(){ pm.expect.fail('poll failed: ' + err); });",
               "          return;",
@@ -134,21 +137,18 @@
       ]
     },
     {
-      "name": "5 - Optional: event_store entries",
+      "name": "5 - (removed) event_store entries",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/test/db?aggregate_id={{campaniaId}}"
+        "url": "{{baseUrlCampanias}}/campanias/{{campaniaId}}"
       },
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('event_store contains PagoConfirmado or CampaniaAprobada', function () {",
-              "  var body = pm.response.json();",
-              "  var has = (body.event_store || []).some(function (e) { return e.type && (e.type.indexOf('PagoConfirmado') !== -1 || e.type.indexOf('CampaniaAprobada') !== -1); });",
-              "  pm.expect(has).to.be.true;",
-              "});"
+              "pm.test('Final GET returns 200', function(){ pm.expect(pm.response.code).to.eql(200); });",
+              "// This step is a placeholder replaced so the collection doesn't call a non-existent /test/db endpoint. It simply fetches the campaign."
             ],
             "type": "text/javascript"
           }

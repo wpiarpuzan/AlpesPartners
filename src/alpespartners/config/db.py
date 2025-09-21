@@ -2,6 +2,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
 import os, importlib
+import socket, time, logging
+from urllib.parse import urlparse
 
 db = SQLAlchemy()
 
@@ -42,8 +44,26 @@ def init_db(app: Flask):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     db.init_app(app)
-
     with app.app_context():
+        # Wait for DB hostname (from SQLALCHEMY_DATABASE_URI) to be resolvable
+        try:
+            db_url = app.config.get('SQLALCHEMY_DATABASE_URI') or ''
+            parsed = urlparse(db_url)
+            hostname = parsed.hostname
+            if hostname:
+                for attempt in range(10):
+                    try:
+                        socket.gethostbyname(hostname)
+                        logging.info(f"DB host {hostname} resolved (attempt {attempt+1})")
+                        break
+                    except Exception as e:
+                        logging.warning(f"DB host {hostname} not resolvable yet (attempt {attempt+1}/10): {e}")
+                        time.sleep(min(2 ** attempt, 30))
+                else:
+                    logging.warning(f"DB host {hostname} still not resolvable after retries; continuing and hoping for DNS to appear")
+        except Exception:
+            # Non-fatal: if parsing/lookup fails, continue and let SQLAlchemy surface the error
+            logging.exception('Error while waiting for DB host resolution')
         # importa los modelos para que SQLAlchemy 
         for m in MODEL_MODULES:
             try:

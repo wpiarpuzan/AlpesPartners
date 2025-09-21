@@ -10,22 +10,32 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
 PULSAR_BROKER_URL = os.environ.get('PULSAR_BROKER_URL')
-TOPIC_EVENTOS_PAGOS = 'persistent://public/default/eventos-pagos-json'
+# Prefer the canonical topic used by the pagos publisher; allow override from env
+TOPIC_EVENTOS_PAGOS = os.environ.get('TOPIC_EVENTOS_PAGOS', 'persistent://public/default/eventos.pagos')
+
 
 def suscribirse_a_eventos_pagos():
-    client = pulsar.Client(PULSAR_BROKER_URL)
+    client = None
     consumer = None
     for attempt in range(10):
         try:
+            # Create a fresh client each attempt to avoid stale/broken connections
+            client = pulsar.Client(PULSAR_BROKER_URL)
             consumer = client.subscribe(
                 TOPIC_EVENTOS_PAGOS,
                 subscription_name="campanias-sub-eventos-pagos",
                 consumer_type=ConsumerType.Shared,
                 initial_position=pulsar.InitialPosition.Earliest,
             )
+            logging.info(f"[CAMPANIAS] Suscripción a {TOPIC_EVENTOS_PAGOS} establecida (attempt {attempt+1})")
             break
         except Exception as e:
             logging.warning(f"Intento {attempt+1} fallido al suscribirse a {TOPIC_EVENTOS_PAGOS}: {e}")
+            try:
+                if client is not None:
+                    client.close()
+            except Exception:
+                pass
             time.sleep(2 ** attempt)
     if consumer is None:
         raise Exception(f"No se pudo suscribir a {TOPIC_EVENTOS_PAGOS} después de varios intentos")
@@ -36,7 +46,35 @@ def suscribirse_a_eventos_pagos():
         raise RuntimeError('DB_URL not set; cannot create DB engine')
     db_url_sql = db_url.replace('+psycopg2', '')
     logging.info(f"[CAMPANIAS] DB engine will use: {db_url_sql}")
-    engine = create_engine(db_url_sql, pool_pre_ping=True)
+    # Create engine with retries in case the DB hostname or service is not yet resolvable
+    engine = None
+    parsed = None
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(db_url_sql)
+        hostname = parsed.hostname
+    except Exception:
+        hostname = None
+
+    for attempt in range(10):
+        try:
+            if hostname:
+                try:
+                    import socket
+                    socket.gethostbyname(hostname)
+                except Exception:
+                    raise
+            engine = create_engine(db_url_sql, pool_pre_ping=True)
+            # try a quick connection
+            with engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+            logging.info(f"[CAMPANIAS] DB engine created and verified (attempt {attempt+1})")
+            break
+        except Exception as e:
+            logging.warning(f"[CAMPANIAS] DB engine not ready (attempt {attempt+1}/10): {e}")
+            time.sleep(min(2 ** attempt, 30))
+    if engine is None:
+        raise RuntimeError('Could not create DB engine after retries')
 
     def is_event_processed_raw(aggregate_id, event_type, event_id):
         q = text("SELECT 1 FROM processed_events WHERE aggregate_id = :agg AND event_type = :et AND event_id = :eid LIMIT 1")

@@ -1,0 +1,67 @@
+{
+  "info": {
+    "name": "AlpesPartners E2E - Saga Happy Path",
+    "_postman_id": "alpes-e2e-saga",
+    "description": "Verifies the Saga: create campaign -> initial state PENDIENTE -> publish PagoConfirmado -> final state APROBADA",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrlCampanias", "value": "http://localhost:5001" },
+    { "key": "baseUrlPagos", "value": "http://localhost:5002" },
+    { "key": "campaniaId", "value": "camp-e2e-001" },
+    { "key": "eventId", "value": "evt-1" }
+  ],
+  "item": [
+    {
+      "name": "1 - Create Campania",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"idCampania\": \"{{campaniaId}}\", \"idCliente\": \"cli1\", \"itinerario\": [] }"
+        },
+        "url": "{{baseUrlCampanias}}/campanias/comandos/crear"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Create returned 200 or 202', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200,202]);",
+              "});",
+              "try {",
+              "  var body = pm.response.json();",
+              "  if (body && body.idCampania) { pm.collectionVariables.set('campaniaId', body.idCampania); }",
+              "} catch (e) {}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Check campaign initial state (PENDIENTE)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrlCampanias}}/campanias/{{campaniaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200', function(){ pm.expect(pm.response.code).to.eql(200); });",
+              "pm.test('State is PENDIENTE', function(){",
+              "  var body = pm.response.json();",
+              "  pm.expect(JSON.stringify(body)).to.include('PENDIENTE');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
