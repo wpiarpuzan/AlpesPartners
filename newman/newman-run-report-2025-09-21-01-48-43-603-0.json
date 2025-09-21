@@ -1,0 +1,4673 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "alpespartners-bff-basic-e2e"
+    },
+    "item": [
+      {
+        "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+        "name": "Create Campaign",
+        "request": {
+          "url": {
+            "path": [
+              "campanias",
+              "comandos",
+              "crear"
+            ],
+            "host": [
+              "{{BFF_URL}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Create Campaign - status is 201 or 202', function() {",
+                "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                "});",
+                "// save id if returned in body",
+                "try {",
+                "  var body = pm.response.json ? pm.response.json() : {};",
+                "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                "} catch (e) { /* ignore */ }"
+              ],
+              "_lastExecutionId": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+            }
+          }
+        ]
+      },
+      {
+        "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+        "name": "Create Payment",
+        "request": {
+          "url": {
+            "path": [
+              "pagos",
+              "pagar"
+            ],
+            "host": [
+              "{{BFF_URL}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "06a56f11-c804-4f4c-903d-360306973c17",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Create Payment - status is 201 or 202', function() {",
+                "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                "});",
+                "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                "var max = 10; var i = 0;",
+                "function poll() {",
+                "  if (i >= max) {",
+                "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                "    return;",
+                "  }",
+                "  i++;",
+                "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                "      return;",
+                "    }",
+                "    setTimeout(poll, 1000);",
+                "  });",
+                "}",
+                "poll();"
+              ],
+              "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+            }
+          }
+        ]
+      },
+      {
+        "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+        "name": "Get Campaign",
+        "request": {
+          "url": {
+            "path": [
+              "campanias",
+              "{{CAMPANIA_ID}}"
+            ],
+            "host": [
+              "{{BFF_URL}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+              ],
+              "_lastExecutionId": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "alpespartners-bff-basic-e2e",
+      "name": "AlpesPartners BFF - Basic E2E",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Collection to test BFF endpoints for a single service flow: create campaign -> create payment -> get campaign state.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "_": {
+      "postman_variable_scope": "environment",
+      "postman_exported_at": "2025-09-20T00:00:00.000Z",
+      "postman_exported_using": "Postman/10.0.0"
+    },
+    "id": "alpespartners-bff-env",
+    "name": "AlpesPartners BFF Environment",
+    "values": [
+      {
+        "type": "any",
+        "value": "http://localhost:8000",
+        "key": "BFF_URL"
+      },
+      {
+        "type": "any",
+        "value": "camp-{{timestamp}}",
+        "key": "CAMPANIA_ID"
+      },
+      {
+        "type": "any",
+        "value": "pago-{{timestamp}}",
+        "key": "PAGO_ID"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "CAMPANIA_ESTADO"
+      }
+    ]
+  },
+  "globals": {
+    "id": "53b4a408-dadd-491c-920f-69c48d1bb1fa",
+    "values": [
+      {
+        "type": "any",
+        "value": "http://bff:8000",
+        "key": "BFF_URL"
+      }
+    ]
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 13,
+        "pending": 0,
+        "failed": 13
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 4,
+        "pending": 0,
+        "failed": 4
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 0,
+      "responseMin": 0,
+      "responseMax": 0,
+      "responseSd": 0,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1758419313153,
+      "completed": 1758419323580
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "a0fdf4ba-36f5-4a28-9241-948221ed0eb0",
+          "httpRequestId": "e5e0d293-d975-43c7-8dac-6bddf95992a2"
+        },
+        "item": {
+          "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+          "name": "Create Campaign",
+          "request": {
+            "url": {
+              "path": [
+                "campanias",
+                "comandos",
+                "crear"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Campaign - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// save id if returned in body",
+                  "try {",
+                  "  var body = pm.response.json ? pm.response.json() : {};",
+                  "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                  "} catch (e) { /* ignore */ }"
+                ],
+                "_lastExecutionId": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "comandos",
+              "crear"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "15a9c0a1-9543-4a4f-8727-417ec19b4884",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+          }
+        },
+        "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Campaign - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Campaign - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:1)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        },
+        "item": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Create Payment - status is 201 or 202",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Create Payment - status is 201 or 202",
+              "message": "expected false to be true",
+              "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          },
+          {
+            "assertion": "Timeout waiting for campania state",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Timeout waiting for campania state",
+              "message": "campania did not reach expected state within polling window",
+              "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "c4026ea8-131a-40a2-bba6-2e82c3a823ee",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "4448d8db-48ad-4f7c-829b-caba8e3082ab"
+        },
+        "item": {
+          "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+          "name": "Get Campaign",
+          "request": {
+            "url": {
+              "path": [
+                "campanias",
+                "{{CAMPANIA_ID}}"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                  "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+                ],
+                "_lastExecutionId": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "campanias",
+              "camp-%7B%7Btimestamp%7D%7D"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.0",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "5ab654b7-4f6e-4d06-8589-785eb11b3ed4",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+        "requestError": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "assertions": [
+          {
+            "assertion": "Get Campaign - status 200",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Get Campaign - status 200",
+              "message": "expected undefined to deeply equal 200",
+              "stack": "AssertionError: expected undefined to deeply equal 200\n   at Object.eval sandbox-script.js:1:3)"
+            }
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 0
+    },
+    "failures": [
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "1d57fb6e-4f1c-4cc3-a8dd-75701913edc2",
+          "timestamp": 1758419313212,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+          "name": "Create Campaign",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "comandos",
+                "crear"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "15a9c0a1-9543-4a4f-8727-417ec19b4884",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Campaign - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// save id if returned in body",
+                  "try {",
+                  "  var body = pm.response.json ? pm.response.json() : {};",
+                  "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                  "} catch (e) { /* ignore */ }"
+                ]
+              }
+            }
+          ]
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "a0fdf4ba-36f5-4a28-9241-948221ed0eb0",
+          "httpRequestId": "e5e0d293-d975-43c7-8dac-6bddf95992a2"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "Create Campaign - status is 201 or 202",
+          "message": "expected false to be true",
+          "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:1)",
+          "checksum": "62b80223abe938297a40d89a4084a31b",
+          "id": "5c0dc276-a2c3-474e-ad28-e142c4790406",
+          "timestamp": 1758419313255,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+          "name": "Create Campaign",
+          "request": {
+            "url": {
+              "path": [
+                "campanias",
+                "comandos",
+                "crear"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Campaign - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// save id if returned in body",
+                  "try {",
+                  "  var body = pm.response.json ? pm.response.json() : {};",
+                  "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                  "} catch (e) { /* ignore */ }"
+                ],
+                "_lastExecutionId": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "alpespartners-bff-basic-e2e"
+          },
+          "item": [
+            {
+              "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+              "name": "Create Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "comandos",
+                    "crear"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Campaign - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// save id if returned in body",
+                      "try {",
+                      "  var body = pm.response.json ? pm.response.json() : {};",
+                      "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                      "} catch (e) { /* ignore */ }"
+                    ],
+                    "_lastExecutionId": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+              "name": "Create Payment",
+              "request": {
+                "url": {
+                  "path": [
+                    "pagos",
+                    "pagar"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Payment - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                      "var max = 10; var i = 0;",
+                      "function poll() {",
+                      "  if (i >= max) {",
+                      "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                      "    return;",
+                      "  }",
+                      "  i++;",
+                      "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                      "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                      "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                      "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                      "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                      "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                      "      return;",
+                      "    }",
+                      "    setTimeout(poll, 1000);",
+                      "  });",
+                      "}",
+                      "poll();"
+                    ],
+                    "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+              "name": "Get Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "{{CAMPANIA_ID}}"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                      "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+                    ],
+                    "_lastExecutionId": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [],
+          "info": {
+            "_postman_id": "alpespartners-bff-basic-e2e",
+            "name": "AlpesPartners BFF - Basic E2E",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Collection to test BFF endpoints for a single service flow: create campaign -> create payment -> get campaign state.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "a0fdf4ba-36f5-4a28-9241-948221ed0eb0",
+          "httpRequestId": "e5e0d293-d975-43c7-8dac-6bddf95992a2",
+          "scriptId": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+          "execution": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "ce9f43e6-d81e-4e2d-b48c-1e609a4522c6",
+          "timestamp": 1758419313281,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "d9337c07-676c-43a9-b34e-b6c54b956eaa",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"camp-{{timestamp}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ]
+              }
+            }
+          ]
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "75516c7b-8f2f-44c5-9e08-68e7e83158e1"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "Create Payment - status is 201 or 202",
+          "message": "expected false to be true",
+          "stack": "AssertionError: expected false to be true\n   at Object.eval sandbox-script.js:1:2)",
+          "checksum": "8a234830cd7bc84a1724ddfc897044d9",
+          "id": "6b8f4bf7-51b3-4882-b6ee-62c51d3be7fa",
+          "timestamp": 1758419313292,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 2,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "alpespartners-bff-basic-e2e"
+          },
+          "item": [
+            {
+              "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+              "name": "Create Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "comandos",
+                    "crear"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Campaign - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// save id if returned in body",
+                      "try {",
+                      "  var body = pm.response.json ? pm.response.json() : {};",
+                      "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                      "} catch (e) { /* ignore */ }"
+                    ],
+                    "_lastExecutionId": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+              "name": "Create Payment",
+              "request": {
+                "url": {
+                  "path": [
+                    "pagos",
+                    "pagar"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Payment - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                      "var max = 10; var i = 0;",
+                      "function poll() {",
+                      "  if (i >= max) {",
+                      "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                      "    return;",
+                      "  }",
+                      "  i++;",
+                      "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                      "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                      "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                      "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                      "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                      "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                      "      return;",
+                      "    }",
+                      "    setTimeout(poll, 1000);",
+                      "  });",
+                      "}",
+                      "poll();"
+                    ],
+                    "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+              "name": "Get Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "{{CAMPANIA_ID}}"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                      "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+                    ],
+                    "_lastExecutionId": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [],
+          "info": {
+            "_postman_id": "alpespartners-bff-basic-e2e",
+            "name": "AlpesPartners BFF - Basic E2E",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Collection to test BFF endpoints for a single service flow: create campaign -> create payment -> get campaign state.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "75516c7b-8f2f-44c5-9e08-68e7e83158e1",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "b64c4972-53bb-4017-a13f-ceed5dd8f333",
+          "timestamp": 1758419313301,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "a396cbdb-b4a5-41c3-9833-4d11ad25a6d7",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "35e87b01-119b-4f6f-b8a3-3ff40c0405a9",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "aac422ed-7b74-41b3-b86a-4d3683c4d6cd",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "aed52f88-ee40-4d97-8ea0-90f6f3336fc8",
+          "timestamp": 1758419314319,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "907f482f-2152-4d60-bd68-84436a0a1c52",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "8234a666-4607-4ec1-8e85-83b0842e5cd5",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "da25227b-b802-4e20-b9e8-aefffb8e0cc1",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "3bc58d18-c365-48c0-b2c9-ae115c628405",
+          "timestamp": 1758419315338,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "d5645980-ee57-4b1a-9d10-dd90b36596d5",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "97cbb877-81b3-4a95-8a48-e839f1ea71cb",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "d5dcd9b0-b1d3-4081-a285-73c072959166",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "2f1f721a-8bec-470d-8859-a0cc1b2a0397",
+          "timestamp": 1758419316359,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "1a8d7ffe-c718-4581-b828-58d5218b2e6b",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "65337024-3eaa-47ce-91e7-bc97d96292f7",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "f0b62706-c1f5-4079-9377-0601b5a376c3",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "45bcf582-8007-43da-b48b-2ede7adf84a3",
+          "timestamp": 1758419317383,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "6e20fed3-99d4-42a6-be63-c3702fc71663",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "53901aca-4704-46ea-871f-00086c0647b1",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "497751e5-9284-42ed-95ff-409136047953",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "dac5ae06-d429-4984-9572-94252bff2a90",
+          "timestamp": 1758419318404,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "19d4eddb-c11c-410f-95e2-8a2987d5f39b",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "3beafe94-4fd9-4ba8-bdf8-6942a613375d",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "3163dfdc-b2d9-4f07-992a-f8cf2439a5ae",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "3bf024fb-6c34-47d5-8f4d-d2a32887cfc7",
+          "timestamp": 1758419319418,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "2836ec14-7239-4f3a-9934-bd5e8d4a8c23",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "5668cb41-57b4-4e27-950e-4cf489761cf4",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "302ed7ea-15bc-4af3-a93b-e56cdae31bc7",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "184ed665-1fed-4d93-afba-006d9d652451",
+          "timestamp": 1758419320429,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "2911306e-597c-4ad4-802b-3f91c33689e2",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "12f2e12e-69c1-431f-9c7f-3e2d19504608",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "0f72e116-9dd0-433c-b7e4-b618f4ee70b0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "0dcf94cf-38ad-4d9d-bd9a-6ec6641afaa7",
+          "timestamp": 1758419321457,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "af455d7a-b0a9-4833-bd32-6b2250e33c1e",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "c65b78e7-9c7f-4ee6-a42e-30e9105ad3f6",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "102c3205-b89c-4b87-b337-1a9d50c24c11",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "f0b17dc5-727c-4fd9-b036-662d521f64de",
+          "timestamp": 1758419322475,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "e81a331b-8925-4ffa-891f-572f8163e758",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "3fed58cd-98ce-42d0-bf1c-a6640a2bd6e1",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "bd6399a9-9725-42a0-b3c5-0d99fbae8de0",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 1,
+          "test": "Timeout waiting for campania state",
+          "message": "campania did not reach expected state within polling window",
+          "stack": "AssertionError: campania did not reach expected state within polling window\n   at Object.eval sandbox-script.js:2:2)",
+          "checksum": "2fb4eacee2dfc67e0187ffff209b90e0",
+          "id": "a4275564-85ab-46b6-be35-a4af17ebc4dc",
+          "timestamp": 1758419323486,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 2,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 2,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:1 in test-script",
+        "source": {
+          "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+          "name": "Create Payment",
+          "request": {
+            "url": {
+              "path": [
+                "pagos",
+                "pagar"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Payment - status is 201 or 202', function() {",
+                  "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                  "});",
+                  "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                  "var max = 10; var i = 0;",
+                  "function poll() {",
+                  "  if (i >= max) {",
+                  "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                  "    return;",
+                  "  }",
+                  "  i++;",
+                  "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                  "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                  "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                  "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                  "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                  "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                  "      return;",
+                  "    }",
+                  "    setTimeout(poll, 1000);",
+                  "  });",
+                  "}",
+                  "poll();"
+                ],
+                "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "alpespartners-bff-basic-e2e"
+          },
+          "item": [
+            {
+              "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+              "name": "Create Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "comandos",
+                    "crear"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Campaign - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// save id if returned in body",
+                      "try {",
+                      "  var body = pm.response.json ? pm.response.json() : {};",
+                      "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                      "} catch (e) { /* ignore */ }"
+                    ],
+                    "_lastExecutionId": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+              "name": "Create Payment",
+              "request": {
+                "url": {
+                  "path": [
+                    "pagos",
+                    "pagar"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Payment - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                      "var max = 10; var i = 0;",
+                      "function poll() {",
+                      "  if (i >= max) {",
+                      "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                      "    return;",
+                      "  }",
+                      "  i++;",
+                      "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                      "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                      "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                      "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                      "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                      "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                      "      return;",
+                      "    }",
+                      "    setTimeout(poll, 1000);",
+                      "  });",
+                      "}",
+                      "poll();"
+                    ],
+                    "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+              "name": "Get Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "{{CAMPANIA_ID}}"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                      "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+                    ],
+                    "_lastExecutionId": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [],
+          "info": {
+            "_postman_id": "alpespartners-bff-basic-e2e",
+            "name": "AlpesPartners BFF - Basic E2E",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Collection to test BFF endpoints for a single service flow: create campaign -> create payment -> get campaign state.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "cfb6ecb3-58f0-4f3e-b363-1c5c4664eac5",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "75516c7b-8f2f-44c5-9e08-68e7e83158e1",
+          "scriptId": "06a56f11-c804-4f4c-903d-360306973c17",
+          "execution": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+        }
+      },
+      {
+        "error": {
+          "errno": -111,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 8000,
+          "name": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:8000",
+          "stack": "Error: connect ECONNREFUSED 127.0.0.1:8000\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1278:16)",
+          "checksum": "b1927c210321d177a5f3941487c9d1a6",
+          "id": "a38ded46-711b-463d-a7f1-87f247275ef0",
+          "timestamp": 1758419323540,
+          "stacktrace": [
+            {
+              "fileName": "node:net",
+              "lineNumber": 1278,
+              "functionName": "TCPConnectWrap.afterConnect [as oncomplete]",
+              "typeName": "TCPConnectWrap",
+              "methodName": "afterConnect [as oncomplete]",
+              "columnNumber": 16,
+              "native": false
+            }
+          ]
+        },
+        "at": "request",
+        "source": {
+          "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+          "name": "Get Campaign",
+          "request": {
+            "url": {
+              "protocol": "http",
+              "port": "8000",
+              "path": [
+                "campanias",
+                "camp-%7B%7Btimestamp%7D%7D"
+              ],
+              "host": [
+                "localhost"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "PostmanRuntime/7.39.0",
+                "system": true
+              },
+              {
+                "key": "Accept",
+                "value": "*/*",
+                "system": true
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache",
+                "system": true
+              },
+              {
+                "key": "Postman-Token",
+                "value": "5ab654b7-4f6e-4d06-8589-785eb11b3ed4",
+                "system": true
+              },
+              {
+                "key": "Host",
+                "value": "localhost:8000",
+                "system": true
+              },
+              {
+                "key": "Accept-Encoding",
+                "value": "gzip, deflate, br",
+                "system": true
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive",
+                "system": true
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                  "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        "cursor": {
+          "ref": "c4026ea8-131a-40a2-bba6-2e82c3a823ee",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "4448d8db-48ad-4f7c-829b-caba8e3082ab"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "Get Campaign - status 200",
+          "message": "expected undefined to deeply equal 200",
+          "stack": "AssertionError: expected undefined to deeply equal 200\n   at Object.eval sandbox-script.js:1:3)",
+          "checksum": "76fc43d35a32ed5bc697b7e24afe47aa",
+          "id": "12eafdaa-1a1f-4656-9495-372dbfd6ebc5",
+          "timestamp": 1758419323562,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+          "name": "Get Campaign",
+          "request": {
+            "url": {
+              "path": [
+                "campanias",
+                "{{CAMPANIA_ID}}"
+              ],
+              "host": [
+                "{{BFF_URL}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                  "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+                ],
+                "_lastExecutionId": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "alpespartners-bff-basic-e2e"
+          },
+          "item": [
+            {
+              "id": "0ed75fb3-5f45-4e6d-a58d-84e11834a6b7",
+              "name": "Create Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "comandos",
+                    "crear"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"camp-1-postman\",\n  \"nombre\": \"Campania prueba Postman\",\n  \"monto_meta\": 10000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "901aa1d3-27cf-42dc-9f04-b37a3ca3424f",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Campaign - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// save id if returned in body",
+                      "try {",
+                      "  var body = pm.response.json ? pm.response.json() : {};",
+                      "  if (body && body.id) pm.environment.set('CAMPANIA_ID', body.id);",
+                      "} catch (e) { /* ignore */ }"
+                    ],
+                    "_lastExecutionId": "1cee629c-c4e1-4e0a-9786-fcc4a60a3371"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "c6fd3f65-d56b-401a-85a1-75a5a0953f29",
+              "name": "Create Payment",
+              "request": {
+                "url": {
+                  "path": [
+                    "pagos",
+                    "pagar"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"pago-1-postman\",\n  \"campania_id\": \"{{CAMPANIA_ID}}\",\n  \"monto\": 5000\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "06a56f11-c804-4f4c-903d-360306973c17",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Create Payment - status is 201 or 202', function() {",
+                      "  pm.expect(pm.response.code === 201 || pm.response.code === 202).to.be.true;",
+                      "});",
+                      "// poll for campania estado = APROBADA (10 attempts, 1s interval)",
+                      "var max = 10; var i = 0;",
+                      "function poll() {",
+                      "  if (i >= max) {",
+                      "    pm.test('Timeout waiting for campania state', function() { pm.expect.fail('campania did not reach expected state within polling window'); });",
+                      "    return;",
+                      "  }",
+                      "  i++;",
+                      "  pm.sendRequest({ url: pm.environment.get('BFF_URL') + '/campanias/' + pm.environment.get('CAMPANIA_ID'), method: 'GET' }, function (err, res) {",
+                      "    if (err || !res) { setTimeout(poll, 1000); return; }",
+                      "    try { var json = res.json ? res.json() : {}; } catch(e) { setTimeout(poll, 1000); return; }",
+                      "    if (res.code === 200 && json && json.estado === 'APROBADA') {",
+                      "      pm.environment.set('CAMPANIA_ESTADO', json.estado);",
+                      "      pm.test('Campania reached APROBADA', function() { pm.expect(json.estado).to.eql('APROBADA'); });",
+                      "      return;",
+                      "    }",
+                      "    setTimeout(poll, 1000);",
+                      "  });",
+                      "}",
+                      "poll();"
+                    ],
+                    "_lastExecutionId": "5f04a4c8-b700-4a36-8871-0f9f4622836c"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "98e75cac-26ee-4cdb-b5cb-a40224a6f9ee",
+              "name": "Get Campaign",
+              "request": {
+                "url": {
+                  "path": [
+                    "campanias",
+                    "{{CAMPANIA_ID}}"
+                  ],
+                  "host": [
+                    "{{BFF_URL}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Get Campaign - status 200', function() { pm.expect(pm.response.code).to.eql(200); });",
+                      "try { var json = pm.response.json ? pm.response.json() : {}; if (json && json.estado) pm.environment.set('CAMPANIA_ESTADO', json.estado); } catch(e) { }"
+                    ],
+                    "_lastExecutionId": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [],
+          "info": {
+            "_postman_id": "alpespartners-bff-basic-e2e",
+            "name": "AlpesPartners BFF - Basic E2E",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Collection to test BFF endpoints for a single service flow: create campaign -> create payment -> get campaign state.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "c4026ea8-131a-40a2-bba6-2e82c3a823ee",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "4448d8db-48ad-4f7c-829b-caba8e3082ab",
+          "scriptId": "3bf0ff15-b939-41d1-83ec-6e8dd4a62287",
+          "execution": "d735331e-95b7-4311-b2ea-4b2c886867c4"
+        }
+      }
+    ],
+    "error": null
+  }
+}
