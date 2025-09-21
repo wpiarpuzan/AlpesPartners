@@ -11,6 +11,10 @@ RUN pip install --no-cache-dir wheel
 RUN pip install --no-cache-dir -r requirements.txt
 
 
+# Copiar migraciones explícitamente para que estén disponibles en tiempo de ejecución
+# Esto evita que el entrypoint falle cuando busca /src/migrations
+COPY migrations /src/migrations
+
 # Copia todo el código fuente
 COPY . .
 
